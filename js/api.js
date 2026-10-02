@@ -8,14 +8,19 @@ function configuration() {
 
 async function invoke(functionName, payload) {
   const { supabaseUrl, supabaseAnonKey } = configuration();
-  const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/${functionName}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: supabaseAnonKey,
-    },
-    body: JSON.stringify(payload),
-  });
+  let response;
+  try {
+    response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/${functionName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseAnonKey,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error("Sem conexão com o backend. Confira sua internet e a URL do Supabase em js/config.js.");
+  }
 
   const body = await response.json().catch(() => null);
   if (!response.ok) {
