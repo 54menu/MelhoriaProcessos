@@ -6,7 +6,12 @@ const TYPES = ["reclamacao", "sugestao", "duvida", "elogio", "outro"] as const;
 const CATEGORIES = ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"] as const;
 const EVIDENCE = ["observed", "inferred", "suggested"] as const;
 const FIELD_NAMES = ["tipo", "processo", "subprocesso", "sistema", "categoria_problema"] as const;
-const corsHeaders = { "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin", "Content-Type": "application/json; charset=utf-8" };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+};
 
 type FieldValue = { value: string | null; evidence: string; confidence: number };
 type Turn = { role: "user" | "assistant"; text: string };
@@ -18,10 +23,8 @@ const responseSchema = { type: "object", properties: {
   draft: { type: "object", properties: Object.fromEntries(FIELD_NAMES.map((name) => [name, fieldSchema])), required: FIELD_NAMES },
 }, required: ["assistant_message", "ready_for_validation", "summary", "draft"] } as const;
 
-function origin(value: string | null) { return value?.trim().replace(/\/$/, "") ?? null; }
-function reply(status: number, body: unknown, requestOrigin: string | null) {
-  const allowed = origin(Deno.env.get("ALLOWED_ORIGIN") ?? null);
-  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Access-Control-Allow-Origin": allowed && allowed === origin(requestOrigin) ? allowed : (allowed ?? "") } });
+function reply(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
 }
 function validField(value: unknown): value is FieldValue {
   if (!value || typeof value !== "object") return false;
@@ -45,22 +48,6 @@ function turns(value: unknown): Turn[] | null {
   if (result.filter((item) => item.role === "user").reduce((total, item) => total + item.text.trim().length, 0) > 2000) return null;
   return result.map((item) => ({ role: item.role, text: item.text.trim() }));
 }
-async function audit(outcome: string, valid: boolean, latency: number, code?: string) {
-  const url = Deno.env.get("SUPABASE_URL"); const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (!url || !key) return;
-  await createClient(url, key, { auth: { persistSession: false } }).from("mvp0_call_audits").insert({ model: MODEL, latency_ms: latency, outcome, response_valid: valid, error_code: code ?? null });
-}
-async function authorize(token: string) {
-  const url = Deno.env.get("SUPABASE_URL"); const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (!url || !serviceKey) throw new Error("auth_unavailable");
-  const client = createClient(url, serviceKey, { auth: { persistSession: false } }); const { data, error } = await client.auth.getUser(token);
-  if (error || !data.user) throw new Error("auth_required");
-  const { data: role } = await client.from("user_roles").select("user_id").eq("user_id", data.user.id).maybeSingle(); if (!role) throw new Error("institution_access_required");
-  return data.user.id;
-}
-async function consumeRateLimit(userId: string) {
-  const url = Deno.env.get("SUPABASE_URL"); const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (!url || !serviceKey) throw new Error("rate_limit_unavailable");
-  const { data, error } = await createClient(url, serviceKey, { auth: { persistSession: false } }).rpc("consume_edge_rate_limit", { p_scope: "analyze-perception", p_user_id: userId, p_limit: 10, p_window_seconds: 60 });
-  if (error) throw error; const result = Array.isArray(data) ? data[0] : data; return result?.allowed ? 0 : Number(result?.retry_after_seconds ?? 60);
-}
 async function createAnalysisSession(history: Turn[], rawResponse: unknown, dialogue: Dialogue) {
   const url = Deno.env.get("SUPABASE_URL"); const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (!url || !serviceKey) throw new Error("persistence_not_configured");
   const originalText = history.filter((item) => item.role === "user").map((item) => item.text).join("\n");
@@ -81,26 +68,20 @@ Histórico: ${JSON.stringify(history)}\nVersão: ${PROMPT_VERSION}`;
 }
 
 Deno.serve(async (request) => {
-  const requestOrigin = origin(request.headers.get("Origin")); const allowed = origin(Deno.env.get("ALLOWED_ORIGIN") ?? null);
-  if (request.method === "OPTIONS") return allowed && requestOrigin === allowed ? new Response(null, { status: 204, headers: { ...corsHeaders, "Access-Control-Allow-Origin": allowed } }) : reply(403, { error: { code: "origin_not_allowed", message: "Origem não autorizada." } }, requestOrigin);
-  if (!allowed || requestOrigin !== allowed) return reply(403, { error: { code: "origin_not_allowed", message: "Origem não autorizada." } }, requestOrigin);
-  if (request.method !== "POST") return reply(405, { error: { code: "method_not_allowed", message: "Use POST." } }, requestOrigin);
-  const started = Date.now(); const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, ""); if (!token) return reply(401, { error: { code: "auth_required", message: "Autenticação necessária." } }, requestOrigin);
-  let userId: string; try { userId = await authorize(token); } catch { return reply(403, { error: { code: "institution_access_required", message: "Usuário sem acesso à instituição." } }, requestOrigin); }
-  try { const retryAfter = await consumeRateLimit(userId); if (retryAfter) return reply(429, { error: { code: "rate_limited", message: "Muitas mensagens em pouco tempo. Tente novamente em instantes.", retry_after_seconds: retryAfter } }, requestOrigin); } catch { return reply(503, { error: { code: "rate_limit_unavailable", message: "Controle temporariamente indisponível. Tente novamente." } }, requestOrigin); }
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (request.method !== "POST") return reply(405, { error: { code: "method_not_allowed", message: "Use POST." } });
   try {
     const payload = await request.json().catch(() => null); const history = turns(payload && typeof payload === "object" ? (payload as Record<string, unknown>).messages : null);
-    if (!history) return reply(400, { error: { code: "invalid_conversation", message: "Envie uma conversa válida, com até 12 mensagens e 2.000 caracteres do usuário." } }, requestOrigin);
+    if (!history) return reply(400, { error: { code: "invalid_conversation", message: "Envie uma conversa válida, com até 12 mensagens e 2.000 caracteres do usuário." } });
     const apiKey = Deno.env.get("GEMINI_API_KEY"); if (!apiKey) throw new Error("gemini_not_configured");
     const provider = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: promptFor(history) }] }], generationConfig: { responseMimeType: "application/json", responseSchema, temperature: 0.2 } }) });
     if (!provider.ok) throw new Error(`gemini_${provider.status}`);
     const rawResponse = await provider.json(); let parsed: unknown; try { parsed = JSON.parse(rawResponse?.candidates?.[0]?.content?.parts?.[0]?.text); } catch { parsed = null; }
-    if (!validDialogue(parsed)) { await audit("invalid_ai_response", false, Date.now() - started, "invalid_provider_json"); return reply(502, { error: { code: "invalid_provider_response", message: "A IA não retornou o contrato de conversa esperado." } }, requestOrigin); }
+    if (!validDialogue(parsed)) return reply(502, { error: { code: "invalid_provider_response", message: "A IA não retornou o contrato de conversa esperado." } });
     const analysisId = parsed.ready_for_validation ? await createAnalysisSession(history, rawResponse, parsed) : null;
-    await audit("success", true, Date.now() - started);
-    return reply(200, { analysis_id: analysisId, contract_version: PROMPT_VERSION, model: MODEL, ...parsed }, requestOrigin);
+    return reply(200, { analysis_id: analysisId, contract_version: PROMPT_VERSION, model: MODEL, ...parsed });
   } catch (error) {
-    const code = error instanceof Error ? error.message : "unexpected_error"; await audit("provider_error", false, Date.now() - started, code.slice(0, 100)); console.error("conversation analysis failed", code);
-    return reply(502, { error: { code: "upstream_failure", message: "Não foi possível continuar a conversa agora." } }, requestOrigin);
+    const code = error instanceof Error ? error.message : "unexpected_error"; console.error("conversation analysis failed", code);
+    return reply(502, { error: { code: "upstream_failure", message: "Não foi possível continuar a conversa agora." } });
   }
 });

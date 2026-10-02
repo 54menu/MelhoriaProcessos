@@ -1,3 +1,6 @@
+-- POC evolutivo 3/4: inteligencia de recorrencia (contagens exatas, sem semantica).
+-- Views leem classifications + perceptions; Edge usa service_role (bypassa RLS).
+
 create or replace view public.recurrence_summary
 with (security_invoker = true)
 as

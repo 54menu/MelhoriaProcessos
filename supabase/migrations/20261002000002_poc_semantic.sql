@@ -1,3 +1,6 @@
+-- POC evolutivo 4/4: inteligencia semantica com pgvector (sinal, nunca decisao).
+-- Embeddings rastreaveis; similaridade e anomalia nao alteram classificacao/dicionario.
+
 create extension if not exists vector with schema extensions;
 
 create table if not exists public.perception_embeddings (
@@ -28,7 +31,7 @@ as $$
   limit least(greatest(p_limit, 1), 50)
 $$;
 
-create or replace function public.semantic_neighbors(p_embedding extensions.vector(768), p_threshold real default 0.78, p_limit integer default 20)
+create or replace function public.semantic_neighbors(p_embedding extensions.vector(768), p_threshold real default 0.72, p_limit integer default 20)
 returns table (perception_id uuid, original_text text, similarity real, created_at timestamptz)
 language sql
 stable
@@ -81,7 +84,11 @@ as $$
   order by recent_count desc
 $$;
 
+revoke all on function public.unembedded_perceptions(integer) from public;
 revoke all on function public.semantic_neighbors(extensions.vector, real, integer) from public;
 revoke all on function public.semantic_similar_pairs(real, integer) from public;
 revoke all on function public.operational_anomalies() from public;
-revoke all on function public.unembedded_perceptions(integer) from public;
+grant execute on function public.unembedded_perceptions(integer) to service_role;
+grant execute on function public.semantic_neighbors(extensions.vector, real, integer) to service_role;
+grant execute on function public.semantic_similar_pairs(real, integer) to service_role;
+grant execute on function public.operational_anomalies() to service_role;

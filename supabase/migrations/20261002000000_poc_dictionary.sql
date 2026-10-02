@@ -1,3 +1,7 @@
+-- POC evolutivo 2/4: Dicionario Operacional Evolutivo, versao aberta (sem auth).
+-- Pressupoe baseline 20260930000000 aplicada. RLS habilitado sem policies:
+-- somente service_role (Edge Functions) acessa.
+
 create table if not exists public.entities (
   id uuid primary key default gen_random_uuid(),
   entity_type text not null check (entity_type in ('processo', 'subprocesso', 'sistema')),
@@ -76,26 +80,26 @@ declare
   v_consolidated_into uuid;
 begin
   if p_value is null or trim(p_value) = '' then return null; end if;
+  if p_entity_type not in ('processo', 'subprocesso', 'sistema') then return null; end if;
+  if p_evidence_state not in ('observed', 'inferred', 'suggested') then
+    p_evidence_state := 'observed';
+  end if;
   v_normalized := public.normalize_entity_name(p_value);
   select e.id into v_entity_id from public.entities e
   where e.entity_type = p_entity_type and e.normalized_name = v_normalized;
-
   if v_entity_id is null then
     select a.entity_id into v_entity_id from public.entity_aliases a
     where a.entity_type = p_entity_type and a.normalized_alias = v_normalized;
   end if;
-
   if v_entity_id is not null then
     select consolidated_into into v_consolidated_into from public.entities where id = v_entity_id;
     if v_consolidated_into is not null then v_entity_id := v_consolidated_into; end if;
   end if;
-
   if v_entity_id is null then
     insert into public.entities (entity_type, canonical_name, normalized_name)
-    values (p_entity_type, trim(p_value), v_normalized)
+    values (trim(p_value), trim(p_value), v_normalized)
     returning id into v_entity_id;
   end if;
-
   insert into public.entity_evidence (entity_id, perception_id, field_name, extracted_value, evidence_state)
   values (v_entity_id, p_perception_id, p_field_name, trim(p_value), p_evidence_state)
   on conflict (entity_id, perception_id, field_name) do nothing;
@@ -116,7 +120,7 @@ from public.entities e
 left join public.entity_evidence ev on ev.entity_id = e.id
 group by e.id;
 
--- Inclui no dicionário os registros validados antes da ativação do MVP 3.
+-- Retroage percepcoes ja validadas antes deste ponto evolutivo.
 select public.register_entity_evidence(c.perception_id, values_to_register.entity_type, values_to_register.entity_type, values_to_register.entity_value, 'observed')
 from public.classifications c
 cross join lateral (
@@ -127,6 +131,7 @@ cross join lateral (
 ) as values_to_register(entity_type, entity_value)
 where values_to_register.entity_value is not null and trim(values_to_register.entity_value) <> '';
 
+-- Estende persistencia da baseline para alimentar o dicionario a cada confirmacao.
 create or replace function public.persist_validated_perception(p_session_id uuid, p_classification jsonb)
 returns uuid
 language plpgsql
@@ -141,19 +146,29 @@ declare
   v_final_value text;
   v_state text;
 begin
-  select * into v_session from public.analysis_sessions where id = p_session_id and consumed_at is null and expires_at > now() for update;
-  if not found then raise exception 'analysis_session_unavailable'; end if;
-  if p_classification->>'tipo' not in ('reclamacao', 'sugestao', 'duvida', 'elogio', 'outro') or p_classification->>'categoria_problema' not in ('erro', 'lentidao', 'acesso', 'usabilidade', 'integracao', 'processo', 'informacao', 'outro') then raise exception 'invalid_classification'; end if;
-
+  select * into v_session from public.analysis_sessions
+  where id = p_session_id and consumed_at is null and expires_at > now()
+  for update;
+  if not found then
+    raise exception 'analysis_session_unavailable';
+  end if;
+  if p_classification->>'tipo' not in ('reclamacao', 'sugestao', 'duvida', 'elogio', 'outro')
+     or p_classification->>'categoria_problema' not in ('erro', 'lentidao', 'acesso', 'usabilidade', 'integracao', 'processo', 'informacao', 'outro') then
+    raise exception 'invalid_classification';
+  end if;
   insert into public.perceptions (original_text) values (v_session.original_text) returning id into v_perception_id;
-  insert into public.ai_interpretations (perception_id, prompt_version, raw_response, interpretation) values (v_perception_id, v_session.prompt_version, v_session.raw_response, v_session.proposed_interpretation->>'interpretation');
-  insert into public.classifications (perception_id, tipo, processo, subprocesso, sistema, categoria_problema) values (v_perception_id, p_classification->>'tipo', nullif(p_classification->>'processo', ''), nullif(p_classification->>'subprocesso', ''), nullif(p_classification->>'sistema', ''), p_classification->>'categoria_problema');
-
+  insert into public.ai_interpretations (perception_id, prompt_version, raw_response, interpretation)
+  values (v_perception_id, v_session.prompt_version, v_session.raw_response, v_session.proposed_interpretation->>'interpretation');
+  insert into public.classifications (perception_id, tipo, processo, subprocesso, sistema, categoria_problema)
+  values (v_perception_id, p_classification->>'tipo', nullif(p_classification->>'processo', ''), nullif(p_classification->>'subprocesso', ''), nullif(p_classification->>'sistema', ''), p_classification->>'categoria_problema');
   foreach v_field in array array['tipo', 'processo', 'subprocesso', 'sistema', 'categoria_problema'] loop
-    v_ai_value := v_session.proposed_interpretation->'fields'->v_field->>'value'; v_final_value := nullif(p_classification->>v_field, '');
-    if v_ai_value is distinct from v_final_value then insert into public.corrections (perception_id, field, ai_value, final_value) values (v_perception_id, v_field, v_ai_value, v_final_value); end if;
+    v_ai_value := v_session.proposed_interpretation->'fields'->v_field->>'value';
+    v_final_value := nullif(p_classification->>v_field, '');
+    if v_ai_value is distinct from v_final_value then
+      insert into public.corrections (perception_id, field, ai_value, final_value)
+      values (v_perception_id, v_field, v_ai_value, v_final_value);
+    end if;
   end loop;
-
   foreach v_field in array array['processo', 'subprocesso', 'sistema'] loop
     v_final_value := nullif(p_classification->>v_field, '');
     if v_final_value is not null then
@@ -162,16 +177,12 @@ begin
       perform public.register_entity_evidence(v_perception_id, v_field, v_field, v_final_value, v_state);
     end if;
   end loop;
-
   update public.analysis_sessions set consumed_at = now() where id = p_session_id;
   return v_perception_id;
 end;
 $$;
 
-revoke all on function public.register_entity_evidence(uuid, text, text, text, text) from public;
-revoke all on function public.persist_validated_perception(uuid, jsonb) from public;
-
-create or replace function public.consolidate_entities(p_source_id uuid, p_target_id uuid, p_actor_id uuid)
+create or replace function public.consolidate_entities(p_source_id uuid, p_target_id uuid, p_actor_id uuid default null)
 returns void
 language plpgsql
 security definer
@@ -183,10 +194,11 @@ declare
 begin
   select * into v_source from public.entities where id = p_source_id for update;
   select * into v_target from public.entities where id = p_target_id for update;
-  if v_source.id is null or v_target.id is null or v_source.id = v_target.id or v_source.entity_type <> v_target.entity_type or v_target.governance_status = 'consolidated' then
+  if v_source.id is null or v_target.id is null or v_source.id = v_target.id
+     or v_source.entity_type <> v_target.entity_type
+     or v_target.governance_status = 'consolidated' then
     raise exception 'invalid_consolidation';
   end if;
-
   delete from public.entity_evidence source_evidence
   using public.entity_evidence target_evidence
   where source_evidence.entity_id = p_source_id
@@ -203,4 +215,11 @@ begin
 end;
 $$;
 
+revoke all on function public.normalize_entity_name(text) from public;
+revoke all on function public.register_entity_evidence(uuid, text, text, text, text) from public;
+revoke all on function public.persist_validated_perception(uuid, jsonb) from public;
 revoke all on function public.consolidate_entities(uuid, uuid, uuid) from public;
+grant execute on function public.normalize_entity_name(text) to service_role;
+grant execute on function public.register_entity_evidence(uuid, text, text, text, text) to service_role;
+grant execute on function public.persist_validated_perception(uuid, jsonb) to service_role;
+grant execute on function public.consolidate_entities(uuid, uuid, uuid) to service_role;

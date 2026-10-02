@@ -1,3 +1,8 @@
+-- POC enxuto: relato + IA + registro, sem usuários/acessos.
+-- pressupõe banco limpo (supabase db reset em projeto novo).
+-- As Edge Functions usam service_role e o frontend fala apenas com elas;
+-- nenhuma tabela precisa de policy pública.
+
 create table if not exists public.analysis_sessions (
   id uuid primary key default gen_random_uuid(),
   original_text text not null check (char_length(original_text) between 1 and 2000),
@@ -53,6 +58,8 @@ alter table public.ai_interpretations enable row level security;
 alter table public.classifications enable row level security;
 alter table public.corrections enable row level security;
 
+-- Sem policies: acesso direto bloqueado; somente service_role (Edge Functions) grava/lê.
+
 create or replace function public.persist_validated_perception(p_session_id uuid, p_classification jsonb)
 returns uuid
 language plpgsql
@@ -100,3 +107,4 @@ end;
 $$;
 
 revoke all on function public.persist_validated_perception(uuid, jsonb) from public;
+grant execute on function public.persist_validated_perception(uuid, jsonb) to service_role;

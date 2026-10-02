@@ -3,28 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dicionário Operacional — Administração</title>
+    <meta name="description" content="POC: dicionário operacional evolutivo aberto." />
+    <title>Inteligência Operacional — Dicionário</title>
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
     <main class="layout admin-layout">
-      <section class="panel admin-panel">
-        <p class="eyebrow">MVP 3 · Administração</p>
-        <h1>Dicionário operacional</h1>
-        <p class="intro">Revise conceitos identificados nos relatos, consulte suas evidências e decida seu estado oficial.</p>
-
-        <form id="login-form" class="review-form">
-          <label>E-mail<input id="email" type="email" autocomplete="username" required /></label>
-          <label>Senha<input id="password" type="password" autocomplete="current-password" required /></label>
-          <button type="submit">Entrar</button>
-        </form>
-
-        <section id="dictionary" hidden>
-          <div class="admin-actions"><button id="refresh" type="button">Atualizar lista</button><button id="logout" type="button" class="secondary">Sair</button></div>
-          <p id="admin-status" class="status" aria-live="polite"></p>
-          <div class="table-wrap"><table><thead><tr><th>Conceito</th><th>Tipo</th><th>Estado</th><th>Evidências</th><th>Ações</th></tr></thead><tbody id="entity-list"></tbody></table></div>
-          <section id="evidence" class="evidence" hidden></section>
-        </section>
+      <section class="panel admin-panel" aria-labelledby="admin-title">
+        <p class="eyebrow">POC evolutiva · Dicionário</p>
+        <h1 id="admin-title">Dicionário operacional</h1>
+        <p class="intro">Candidatos surgem de percepções confirmadas. Homologar, rejeitar, adicionar sinônimo ou consolidar não altera o texto original — só o estado de governança. <a href="index.html">Voltar ao relato</a> · <a href="analytics.html">Indicadores</a> · <a href="semantic.html">Semântica</a></p>
+        <div class="admin-actions">
+          <button id="refresh" type="button">Atualizar dicionário</button>
+        </div>
+        <p id="status" class="status" aria-live="polite">Carregando entidades…</p>
+        <div class="table-wrap"><table aria-label="Entidades do dicionário">
+          <thead><tr><th>Nome</th><th>Tipo</th><th>Status</th><th>Evidências</th><th>Ações</th></tr></thead>
+          <tbody id="entities"></tbody>
+        </table></div>
+        <section id="evidence" class="evidence" hidden aria-label="Evidências da entidade"></section>
       </section>
     </main>
     <script src="js/config.js"></script>

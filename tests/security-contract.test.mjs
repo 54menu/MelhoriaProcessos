@@ -10,11 +10,25 @@ test("configuração pública não contém secrets de servidor", async () => {
   assert.doesNotMatch(config, /SUPABASE_SERVICE_ROLE_KEY|GEMINI_API_KEY/i);
 });
 
-test("cliente renova sessões antes de chamar Edge Functions", async () => {
-  const [auth, api] = await Promise.all([read("js/auth.js"), read("js/api.js")]);
-  assert.match(auth, /refresh_token/);
-  assert.match(auth, /REFRESH_SKEW_MS/);
-  assert.match(api, /currentAccessToken\(\)/);
+test("frontend POC não tem login nem sessão", async () => {
+  const [html, app, api, admin, analytics, semantic] = await Promise.all([
+    read("index.html"),
+    read("js/app.js"),
+    read("js/api.js"),
+    read("js/admin.js"),
+    read("js/analytics.js"),
+    read("js/semantic.js"),
+  ]);
+  for (const source of [html, app, admin, analytics, semantic]) {
+    assert.doesNotMatch(source, /login-form|password|Entrar|signIn|signOut/i);
+  }
+  assert.doesNotMatch(app, /auth\.js|hasSession|signIn|signOut/);
+  assert.doesNotMatch(api, /auth\.js|Authorization|accessToken/);
+  assert.match(api, /analyze-perception/);
+  assert.match(api, /record-perception/);
+  assert.match(api, /dictionary-admin/);
+  assert.match(api, /operational-analytics/);
+  assert.match(api, /semantic-intelligence/);
 });
 
 test("modelo Gemini padrão é explicitamente configurável", async () => {
@@ -28,4 +42,32 @@ test("analista conduz a conversa antes de liberar validação", async () => {
   assert.match(source, /ready_for_validation/);
   assert.match(source, /5W2H/);
   assert.match(source, /const analysisId = parsed\.ready_for_validation/);
+});
+
+test("Edge Functions do POC são abertas e enxutas", async () => {
+  const [analyze, record, dictionary, analytics, semantic] = await Promise.all([
+    read("supabase/functions/analyze-perception/index.ts"),
+    read("supabase/functions/record-perception/index.ts"),
+    read("supabase/functions/dictionary-admin/index.ts"),
+    read("supabase/functions/operational-analytics/index.ts"),
+    read("supabase/functions/semantic-intelligence/index.ts"),
+  ]);
+  for (const source of [analyze, record, dictionary, analytics, semantic]) {
+    assert.match(source, /Access-Control-Allow-Origin": "\*"/);
+    assert.doesNotMatch(source, /authorize|user_roles|consume_edge_rate_limit|ALLOWED_ORIGIN/);
+  }
+});
+
+test("pontos evolutivos 2-4 preservam auditoria e não decidem sozinhos", async () => {
+  const [dictionary, semantic, migration] = await Promise.all([
+    read("supabase/functions/dictionary-admin/index.ts"),
+    read("supabase/functions/semantic-intelligence/index.ts"),
+    read("supabase/migrations/20261002000000_poc_dictionary.sql"),
+  ]);
+  assert.match(dictionary, /entity_governance_events/);
+  assert.match(dictionary, /consolidate_entities/);
+  assert.match(semantic, /semantic_similar_pairs/);
+  assert.match(semantic, /operational_anomalies/);
+  assert.match(semantic, /gemini-embedding-001/);
+  assert.match(migration, /register_entity_evidence/);
 });

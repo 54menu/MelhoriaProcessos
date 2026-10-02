@@ -1,6 +1,37 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Inteligência Semântica</title><link rel="stylesheet" href="css/app.css" /></head>
-<body><main class="layout admin-layout"><section class="panel admin-panel"><p class="eyebrow">MVP 6 · Inteligência semântica</p><h1>Similaridades e anomalias</h1><p class="intro">Compare relatos pelo significado e encontre variações incomuns com base nos registros validados.</p>
-<form id="login-form" class="review-form"><label>E-mail<input id="email" type="email" autocomplete="username" required /></label><label>Senha<input id="password" type="password" autocomplete="current-password" required /></label><button type="submit">Entrar</button></form>
-<section id="workspace" hidden><div class="admin-actions"><button id="backfill" type="button">Gerar embeddings</button><button id="insights" type="button">Atualizar insights</button><button id="logout" type="button" class="secondary">Sair</button></div><p id="status" class="status" aria-live="polite"></p><form id="search-form" class="semantic-search"><input id="query" placeholder="Buscar relatos por significado" maxlength="2000" required /><button type="submit">Buscar</button></form><section class="analytics-grid"><article class="analytics-card"><h2>Resultados similares</h2><div id="matches"></div></article><article class="analytics-card"><h2>Grupos semanticamente próximos</h2><div id="pairs"></div></article><article class="analytics-card"><h2>Anomalias recentes</h2><div id="anomalies"></div></article></section></section>
-</section></main><script src="js/config.js"></script><script type="module" src="js/semantic.js"></script></body></html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="POC: busca semântica e sinais de similaridade." />
+    <title>Inteligência Operacional — Semântica</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <main class="layout admin-layout">
+      <section class="panel admin-panel" aria-labelledby="semantic-title">
+        <p class="eyebrow">POC evolutiva · Semântica</p>
+        <h1 id="semantic-title">Busca semântica e sinais</h1>
+        <p class="intro">Similaridade é sinal, não decisão: pares não alteram classificação nem dicionário. <a href="index.html">Voltar ao relato</a> · <a href="analytics.html">Indicadores</a> · <a href="admin.html">Dicionário</a></p>
+        <div class="admin-actions">
+          <button id="backfill" type="button">Gerar embeddings pendentes</button>
+          <button id="insights" type="button" class="secondary">Atualizar pares e anomalias</button>
+        </div>
+        <form id="search-form" class="semantic-search">
+          <label class="sr-only" for="query">Buscar relato semelhante</label>
+          <input id="query" maxlength="2000" placeholder="Ex.: GRAN travou na inclusão" required />
+          <button type="submit">Buscar</button>
+        </form>
+        <p id="status" class="status" aria-live="polite">Gere embeddings e busque por sentido, não só por palavra exata.</p>
+        <div class="analytics-grid">
+          <section class="analytics-card"><h2>Resultados da busca</h2><div id="matches"></div></section>
+          <section class="analytics-card"><h2>Pares semelhantes (candidatos)</h2><div id="pairs"></div></section>
+          <section class="analytics-card"><h2>Anomalias (7d vs 30d)</h2><div id="anomalies"></div></section>
+          <section class="analytics-card"><h2>Cobertura</h2><div id="coverage"></div></section>
+        </div>
+      </section>
+    </main>
+    <script src="js/config.js"></script>
+    <script type="module" src="js/semantic.js"></script>
+  </body>
+</html>

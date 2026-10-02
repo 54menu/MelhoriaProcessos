@@ -1,39 +1,66 @@
-import { operationalAnalytics } from "./api.js";
-import { hasSession, signIn, signOut } from "./auth.js";
+import { fetchAnalytics } from "./api.js";
 
-const loginForm = document.querySelector("#login-form");
-const dashboard = document.querySelector("#dashboard");
-const status = document.querySelector("#analytics-status");
-let accessToken = hasSession();
+const status = document.querySelector("#status");
+const metrics = document.querySelector("#metrics");
+const recurrences = document.querySelector("#recurrences");
+const systems = document.querySelector("#systems");
+const processes = document.querySelector("#processes");
+const evolution = document.querySelector("#evolution");
+const coverage = document.querySelector("#unit-coverage");
 
-
-function setStatus(message, error = false) { status.textContent = message; status.className = error ? "status error" : "status"; }
-function config() { return window.APP_CONFIG; }
-function bars(container, rows, label) {
-  container.replaceChildren(); const max = Math.max(...rows.map((row) => Number(row.occurrences)), 1);
-  if (!rows.length) { container.textContent = "Ainda não há dados suficientes."; return; }
-  rows.slice(0, 10).forEach((row) => {
-    const item = document.createElement("div"); item.className = "bar-item";
-    const text = document.createElement("span"); text.textContent = label(row); const value = document.createElement("strong"); value.textContent = String(row.occurrences);
-    const rail = document.createElement("div"); rail.className = "bar-rail"; const fill = document.createElement("div"); fill.className = "bar-fill"; fill.style.width = `${(Number(row.occurrences) / max) * 100}%`; rail.append(fill);
-    item.append(text, value, rail); container.append(item);
+function setStatus(message, isError = false) {
+  status.textContent = message;
+  status.className = isError ? "status error" : "status";
+}
+function barList(target, items, format) {
+  target.innerHTML = "";
+  const max = Math.max(1, ...items.map((item) => item.occurrences));
+  items.slice(0, 12).forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "bar-item";
+    const label = document.createElement("span");
+    label.textContent = format(item);
+    const value = document.createElement("strong");
+    value.textContent = String(item.occurrences);
+    const rail = document.createElement("div");
+    rail.className = "bar-rail";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = `${Math.round((item.occurrences / max) * 100)}%`;
+    rail.append(fill);
+    row.append(label, value, rail);
+    target.append(row);
   });
+  if (!items.length) target.textContent = "Sem dados ainda.";
 }
-function metric(label, value) { const card = document.createElement("article"); card.className = "metric"; const title = document.createElement("span"); title.textContent = label; const number = document.createElement("strong"); number.textContent = String(value); card.append(title, number); return card; }
-function render(data) {
-  const metrics = document.querySelector("#metrics"); metrics.replaceChildren(metric("Percepções validadas", data.total_validated_perceptions), metric("Combinações recorrentes", data.recurring_combinations));
-  bars(document.querySelector("#recurrences"), data.top_recurrences.filter((row) => row.occurrences > 1), (row) => [row.sistema, row.processo, row.subprocesso, row.categoria_problema].filter(Boolean).join(" › "));
-  bars(document.querySelector("#systems"), data.by_system, (row) => row.name);
-  bars(document.querySelector("#processes"), data.by_process, (row) => row.name);
-  const daily = Object.entries(data.daily_evolution.reduce((acc, row) => { acc[row.occurrence_date] = (acc[row.occurrence_date] || 0) + Number(row.occurrences); return acc; }, {})).map(([name, occurrences]) => ({ name, occurrences }));
-  bars(document.querySelector("#evolution"), daily, (row) => row.name);
-  document.querySelector("#unit-coverage").textContent = data.unit_coverage.message;
+
+async function load() {
+  setStatus("Carregando indicadores…");
+  try {
+    const data = await fetchAnalytics();
+    metrics.innerHTML = "";
+    [
+      ["Percepções validadas", data.total_validated_perceptions],
+      ["Combinações recorrentes", data.recurring_combinations],
+    ].forEach(([label, value]) => {
+      const card = document.createElement("div");
+      card.className = "metric";
+      card.textContent = label;
+      const strong = document.createElement("strong");
+      strong.textContent = String(value);
+      card.append(strong);
+      metrics.append(card);
+    });
+    barList(recurrences, data.top_recurrences, (row) => `${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.subprocesso ?? "?"} · ${row.categoria_problema}`);
+    barList(systems, data.by_system, (row) => row.name);
+    barList(processes, data.by_process, (row) => row.name);
+    barList(evolution, data.daily_evolution, (row) => `${row.occurrence_date} · ${row.sistema ?? "?"} · ${row.processo ?? "?"}`);
+    coverage.textContent = data.unit_coverage.message;
+    setStatus(`Indicadores de recorrência exata. ${data.note ?? ""}`);
+  } catch (error) {
+    setStatus(error.message, true);
+  }
 }
-async function load() { if (!accessToken) return; setStatus("Calculando indicadores…"); try { const data = await operationalAnalytics(); render(data); setStatus("Indicadores atualizados com dados validados."); } catch (error) { setStatus(error.message, true); } }
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try { await signIn(document.querySelector("#email").value, document.querySelector("#password").value); accessToken = true; loginForm.hidden = true; dashboard.hidden = false; await load(); } catch (error) { window.alert(error.message); }
-});
+
 document.querySelector("#refresh").addEventListener("click", load);
-document.querySelector("#logout").addEventListener("click", () => { signOut(); accessToken = false; dashboard.hidden = true; loginForm.hidden = false; });
-if (accessToken) { loginForm.hidden = true; dashboard.hidden = false; load(); }
+await load();

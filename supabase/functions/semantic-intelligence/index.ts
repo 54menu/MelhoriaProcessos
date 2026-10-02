@@ -1,71 +1,87 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DIMENSIONS = 768;
-const corsHeaders = { "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS", "Vary": "Origin", "Content-Type": "application/json; charset=utf-8" };
-function origin(value: string | null) { return value?.trim().replace(/\/$/, "") ?? null; }
-function reply(status: number, body: unknown, requestOrigin: string | null) { const allowed = origin(Deno.env.get("ALLOWED_ORIGIN") ?? null); return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Access-Control-Allow-Origin": allowed && allowed === origin(requestOrigin) ? allowed : (allowed ?? "") } }); }
-function vector(values: unknown) { return Array.isArray(values) && values.length === DIMENSIONS && values.every((value) => typeof value === "number" && Number.isFinite(value)) ? `[${values.join(",")}]` : null; }
-async function consumeRateLimit(client: ReturnType<typeof createClient>, userId: string) {
-  const { data, error } = await client.rpc("consume_edge_rate_limit", { p_scope: "semantic-intelligence", p_user_id: userId, p_limit: 20, p_window_seconds: 60 });
-  if (error) throw error; const result = Array.isArray(data) ? data[0] : data;
-  return result?.allowed ? 0 : Number(result?.retry_after_seconds ?? 60);
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+};
 
-async function embed(text: string, apiKey: string, model: string) {
-  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: `models/${model}`, content: { parts: [{ text }] }, taskType: "SEMANTIC_SIMILARITY", outputDimensionality: DIMENSIONS }) });
-  if (!upstream.ok) {
-    const body = await upstream.text().catch(() => "");
-    console.error("embedding upstream failed", upstream.status, body.slice(0, 300));
-    throw new Error(`embedding_${upstream.status} ${body.slice(0, 120)}`);
-  }
-  const data = await upstream.json(); const result = vector(data?.embedding?.values);
+function reply(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
+}
+function vector(values: unknown): string | null {
+  if (!Array.isArray(values) || values.length !== DIMENSIONS) return null;
+  if (!values.every((value) => typeof value === "number" && Number.isFinite(value))) return null;
+  return `[${values.join(",")}]`;
+}
+async function embed(text: string, apiKey: string, model: string): Promise<string> {
+  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({ model: `models/${model}`, content: { parts: [{ text }] }, embedContentConfig: { taskType: "SEMANTIC_SIMILARITY", outputDimensionality: DIMENSIONS } }),
+  });
+  if (!upstream.ok) throw new Error(`embedding_${upstream.status}`);
+  const data = await upstream.json().catch(() => null);
+  const result = vector(data?.embedding?.values);
   if (!result) throw new Error("invalid_embedding_response");
   return result;
 }
 
 Deno.serve(async (request) => {
-  const requestOrigin = origin(request.headers.get("Origin")); const allowed = origin(Deno.env.get("ALLOWED_ORIGIN") ?? null);
-  if (request.method === "OPTIONS") return allowed && requestOrigin === allowed ? new Response(null, { status: 204, headers: { ...corsHeaders, "Access-Control-Allow-Origin": allowed } }) : reply(403, { error: { message: "Origem não autorizada." } }, requestOrigin);
-  if (!allowed || requestOrigin !== allowed) return reply(403, { error: { message: "Origem não autorizada." } }, requestOrigin);
-  if (request.method !== "POST") return reply(405, { error: { message: "Use POST." } }, requestOrigin);
-  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, ""); const url = Deno.env.get("SUPABASE_URL"); const anonKey = Deno.env.get("SUPABASE_ANON_KEY"); const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!token || !url || !anonKey || !serviceKey) return reply(401, { error: { message: "Autenticação administrativa necessária." } }, requestOrigin);
-  const serviceClient = createClient(url, serviceKey, { auth: { persistSession: false } });
-  const { data: userData, error: userError } = await serviceClient.auth.getUser(token);
-  if (userError || !userData.user) return reply(403, { error: { message: "Este usuário não possui acesso administrativo." } }, requestOrigin);
-  const { data: adminCheck } = await serviceClient.from("user_roles").select("role").eq("user_id", userData.user.id).maybeSingle();
-  if (!adminCheck || adminCheck.role !== "admin") return reply(403, { error: { message: "Este usuário não possui acesso administrativo." } }, requestOrigin);
-  try { const retryAfter = await consumeRateLimit(serviceClient, userData.user.id); if (retryAfter) return reply(429, { error: { code: "rate_limited", message: "Muitas operações em pouco tempo. Tente novamente em instantes.", retry_after_seconds: retryAfter } }, requestOrigin); }
-  catch { return reply(503, { error: { code: "rate_limit_unavailable", message: "Controle temporariamente indisponível. Tente novamente." } }, requestOrigin); }
-  const client = createClient(url, anonKey, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
-
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  if (request.method !== "POST") return reply(405, { error: { code: "method_not_allowed", message: "Use POST." } });
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return reply(500, { error: { code: "persistence_failed", message: "Busca semântica indisponível." } });
+  const client = createClient(url, serviceKey, { auth: { persistSession: false } });
   try {
     const payload = await request.json().catch(() => null);
-    if (!payload || typeof payload !== "object") return reply(400, { error: { code: "invalid_json", message: "Envie um JSON válido." } }, requestOrigin);
-    const operation = payload.operation; const apiKey = Deno.env.get("GEMINI_API_KEY"); const model = Deno.env.get("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
+    const operation = payload && typeof payload === "object" ? (payload as Record<string, unknown>).operation : null;
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    const model = Deno.env.get("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
+
     if (operation === "insights") {
       const [{ data: pairs, error: pairsError }, { data: anomalies, error: anomaliesError }, { count, error: countError }] = await Promise.all([
-        client.rpc("semantic_similar_pairs", { p_threshold: 0.84, p_limit: 100 }), client.rpc("operational_anomalies"), client.from("perception_embeddings").select("*", { count: "exact", head: true }),
+        client.rpc("semantic_similar_pairs", { p_threshold: 0.84, p_limit: 100 }),
+        client.rpc("operational_anomalies"),
+        client.from("perception_embeddings").select("*", { count: "exact", head: true }),
       ]);
       if (pairsError || anomaliesError || countError) throw pairsError ?? anomaliesError ?? countError;
-      return reply(200, { embedded_perceptions: count ?? 0, semantic_pairs: pairs ?? [], anomalies: anomalies ?? [] }, requestOrigin);
+      return reply(200, {
+        embedded_perceptions: count ?? 0,
+        semantic_pairs: pairs ?? [],
+        anomalies: anomalies ?? [],
+        warning: "Similaridade é sinal, não decisão. Pares não alteram classificação nem dicionário.",
+      });
     }
-    if (!apiKey) throw new Error("gemini_not_configured");
+    if (!apiKey) return reply(500, { error: { code: "embedding_unavailable", message: "Embedding indisponível: configure GEMINI_API_KEY." } });
     if (operation === "search") {
-      const query = typeof payload?.query === "string" ? payload.query.trim() : ""; if (!query || query.length > 2000) return reply(400, { error: { message: "Informe uma busca de até 2.000 caracteres." } }, requestOrigin);
-      const embedding = await embed(query, apiKey, model); const { data, error } = await client.rpc("semantic_neighbors", { p_embedding: embedding, p_threshold: 0.72, p_limit: 20 });
-      if (error) throw error; return reply(200, { matches: data ?? [] }, requestOrigin);
+      const query = typeof (payload as Record<string, unknown>)?.query === "string" ? String((payload as Record<string, unknown>).query).trim() : "";
+      if (!query || query.length > 2000) return reply(400, { error: { code: "invalid_query", message: "Informe uma busca de até 2.000 caracteres." } });
+      const embedding = await embed(query, apiKey, model);
+      const { data, error } = await client.rpc("semantic_neighbors", { p_embedding: embedding, p_threshold: 0.72, p_limit: 20 });
+      if (error) throw error;
+      return reply(200, { matches: data ?? [] });
     }
     if (operation === "backfill") {
-      const { data: pending, error } = await client.rpc("unembedded_perceptions", { p_limit: 20 }); if (error) throw error;
+      const { data: pending, error } = await client.rpc("unembedded_perceptions", { p_limit: 20 });
+      if (error) throw error;
       const rows = [];
-      for (const perception of pending ?? []) { const embedding = await embed(perception.original_text, apiKey, model); rows.push({ perception_id: perception.perception_id, embedding, embedding_model: model, source_text: perception.original_text }); }
-      if (rows.length) { const { error: insertError } = await client.from("perception_embeddings").upsert(rows, { onConflict: "perception_id" }); if (insertError) throw insertError; }
-      return reply(200, { embedded: rows.length, remaining_batch_available: (pending ?? []).length === 20 }, requestOrigin);
+      for (const item of (pending ?? []) as Array<{ perception_id: string; original_text: string }>) {
+        const embedding = await embed(item.original_text, apiKey, model);
+        rows.push({ perception_id: item.perception_id, embedding, embedding_model: model, source_text: item.original_text });
+      }
+      if (rows.length) {
+        const { error: insertError } = await client.from("perception_embeddings").upsert(rows, { onConflict: "perception_id" });
+        if (insertError) throw insertError;
+      }
+      return reply(200, { embedded: rows.length, remaining_batch_available: (pending ?? []).length === 20 });
     }
-    return reply(400, { error: { message: "Operação não reconhecida." } }, requestOrigin);
+    return reply(400, { error: { code: "unknown_operation", message: "Operação não reconhecida." } });
   } catch (error) {
-    console.error("Semantic intelligence failed", error instanceof Error ? error.message : "unexpected_error");
-    return reply(500, { error: { message: "Não foi possível processar a inteligência semântica." } }, requestOrigin);
+    console.error("POC semantic failed", error instanceof Error ? error.message : "unexpected_error");
+    return reply(502, { error: { code: "upstream_failure", message: "Não foi possível processar a inteligência semântica." } });
   }
 });

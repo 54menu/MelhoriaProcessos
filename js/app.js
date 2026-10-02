@@ -1,10 +1,5 @@
 import { analyzeConversation, recordPerception } from "./api.js";
-import { hasSession, signIn, signOut } from "./auth.js";
 
-const loginForm = document.querySelector("#login-form");
-const sessionInfo = document.querySelector("#session-info");
-const sessionStatus = document.querySelector("#session-status");
-const logoutBtn = document.querySelector("#logout");
 const conversation = document.querySelector("#conversation");
 const form = document.querySelector("#perception-form");
 const input = document.querySelector("#perception");
@@ -15,20 +10,11 @@ const types = ["reclamacao", "sugestao", "duvida", "elogio", "outro"];
 const categories = ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"];
 const labels = { tipo: "Tipo", processo: "Processo", subprocesso: "Subprocesso", sistema: "Sistema", categoria_problema: "Natureza da situação" };
 const humanLabels = { reclamacao: "Reclamação", sugestao: "Sugestão", duvida: "Dúvida", elogio: "Elogio", outro: "Outro", erro: "Erro", lentidao: "Lentidão", acesso: "Acesso", usabilidade: "Usabilidade", integracao: "Integração", processo: "Processo", informacao: "Informação" };
-let authenticated = hasSession();
 let history = [];
 
 function setStatus(message, isError = false) {
   status.textContent = message;
   status.className = isError ? "status chat-status error" : "status chat-status";
-}
-function setSessionUI() {
-  loginForm.hidden = authenticated;
-  sessionInfo.hidden = !authenticated;
-  conversation.hidden = !authenticated;
-  form.hidden = !authenticated;
-  sessionStatus.textContent = authenticated ? "Você está conectado." : "";
-  if (authenticated) setStatus("Escreva como falaria com uma pessoa da equipe.");
 }
 function addMessage(author, text, extraClass = "") {
   const message = document.createElement("article");
@@ -53,7 +39,6 @@ function fieldControl(name, value) {
   const control = document.createElement("input"); control.name = name; control.type = "text"; control.maxLength = 160; control.value = value ?? ""; return control;
 }
 function register(data, values, card) {
-  const actions = card.querySelector(".chat-actions");
   card.querySelectorAll("button").forEach((item) => { item.disabled = true; });
   setStatus("Registrando o que você confirmou…");
   ["processo", "subprocesso", "sistema"].forEach((name) => { values[name] = typeof values[name] === "string" ? values[name].trim() || null : null; });
@@ -71,7 +56,7 @@ function offerNextStep() {
   const continueButton = document.createElement("button"); continueButton.type = "button"; continueButton.textContent = "Compartilhar outra";
   const endButton = document.createElement("button"); endButton.type = "button"; endButton.className = "secondary"; endButton.textContent = "Encerrar conversa";
   continueButton.addEventListener("click", () => { actions.remove(); setStatus("Certo. O que mais você gostaria de compartilhar?"); input.focus(); });
-  endButton.addEventListener("click", () => { actions.remove(); form.hidden = true; addMessage("assistant", "Tudo bem. Quando precisar, é só iniciar uma nova conversa nesta página."); setStatus("Conversa encerrada."); });
+  endButton.addEventListener("click", () => { actions.remove(); form.hidden = true; addMessage("assistant", "Tudo bem. Quando precisar, é só recarregar a página para iniciar uma nova conversa."); setStatus("Conversa encerrada."); });
   actions.append(continueButton, endButton); conversation.append(actions); setStatus("Escolha se deseja continuar ou encerrar a conversa.");
 }
 function renderInterpretation(data) {
@@ -108,14 +93,7 @@ function renderInterpretation(data) {
   card.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
-setSessionUI();
 input.addEventListener("input", () => { count.textContent = `${input.value.length} / 2000`; });
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try { await signIn(document.querySelector("#email").value, document.querySelector("#password").value); authenticated = true; setSessionUI(); input.focus(); }
-  catch (error) { window.alert(error.message); }
-});
-logoutBtn.addEventListener("click", () => { signOut(); authenticated = false; setSessionUI(); });
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = input.value.trim(); if (!message) return;

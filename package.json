@@ -1,9 +1,10 @@
 {
-  "name": "inteligencia-operacional",
+  "name": "inteligencia-operacional-poc",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "scripts": {
-    "lint": "node --check js/auth.js && node --check js/api.js && node --check js/app.js && node --check js/admin.js && node --check js/analytics.js && node --check js/evolution.js && node --check js/semantic.js && node scripts/check-edge-functions.mjs",
+    "dev": "node scripts/serve.mjs",
+    "lint": "node --check js/api.js && node --check js/app.js && node --check js/admin.js && node --check js/analytics.js && node --check js/semantic.js && node --check scripts/serve.mjs && node scripts/check-edge-functions.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run lint && npm test"
   },

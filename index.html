@@ -3,30 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Plataforma de Inteligência Operacional." />
-    <title>Inteligência Operacional</title>
+    <meta name="description" content="Prova de conceito: relato operacional com IA." />
+    <title>Inteligência Operacional — POC</title>
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
     <main class="layout">
       <section class="panel" aria-labelledby="page-title">
-        <p class="eyebrow">Inteligência para uma instituição</p>
+        <p class="eyebrow">Prova de conceito</p>
         <h1 id="page-title">Vamos entender o que aconteceu?</h1>
         <p class="intro">Conte uma situação, dificuldade ou ideia. A interpretação é sempre revisada por você antes de ser registrada.</p>
-        <p><a href="admin.html">Acessar administração do dicionário</a> · <a href="analytics.html">Indicadores</a> · <a href="evolution.html">Evolução</a> · <a href="semantic.html">Semântica</a></p>
+        <p class="intro"><a href="admin.html">Dicionário</a> · <a href="analytics.html">Indicadores</a> · <a href="semantic.html">Semântica</a></p>
 
-        <form id="login-form" class="review-form">
-          <label>E-mail<input id="email" type="email" autocomplete="username" required /></label>
-          <label>Senha<input id="password" type="password" autocomplete="current-password" required /></label>
-          <button type="submit">Entrar</button>
-        </form>
-        <div id="session-info" hidden><p class="status" id="session-status"></p><button id="logout" type="button" class="secondary">Sair</button></div>
-
-        <section id="conversation" class="conversation" hidden aria-label="Conversa sobre percepção operacional" aria-live="polite">
+        <section id="conversation" class="conversation" aria-label="Conversa sobre percepção operacional" aria-live="polite">
           <article class="chat-message assistant"><p class="chat-speaker">Assistente</p><p class="chat-bubble">Olá. O que você gostaria de compartilhar sobre sua rotina de trabalho?</p></article>
         </section>
 
-        <form id="perception-form" class="chat-composer" hidden>
+        <form id="perception-form" class="chat-composer">
           <label class="sr-only" for="perception">Sua mensagem</label>
           <textarea id="perception" name="perception" maxlength="2000" required placeholder="Ex.: O GRAN trava quando tento incluir uma garantia."></textarea>
           <div class="form-footer">
@@ -34,7 +27,7 @@
             <button id="submit-button" type="submit">Enviar</button>
           </div>
         </form>
-        <p id="status" class="status chat-status" aria-live="polite">Faça login para começar.</p>
+        <p id="status" class="status chat-status" aria-live="polite">Escreva como falaria com uma pessoa da equipe.</p>
       </section>
     </main>
 

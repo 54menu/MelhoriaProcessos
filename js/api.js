@@ -1,5 +1,3 @@
-import { accessToken as currentAccessToken } from "./auth.js";
-
 function configuration() {
   const config = window.APP_CONFIG;
   if (!config?.supabaseUrl || !config?.supabaseAnonKey || config.supabaseUrl.includes("SEU-PROJETO")) {
@@ -10,12 +8,10 @@ function configuration() {
 
 async function invoke(functionName, payload) {
   const { supabaseUrl, supabaseAnonKey } = configuration();
-  const accessToken = await currentAccessToken();
   const response = await fetch(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/${functionName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken || supabaseAnonKey}`,
       apikey: supabaseAnonKey,
     },
     body: JSON.stringify(payload),
@@ -23,7 +19,7 @@ async function invoke(functionName, payload) {
 
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(body?.error?.message || "Não foi possível concluir o teste.");
+    throw new Error(body?.error?.message || "Não foi possível concluir a operação.");
   }
   return body;
 }
@@ -31,10 +27,19 @@ async function invoke(functionName, payload) {
 export function analyzeConversation(messages) {
   return invoke("analyze-perception", { messages });
 }
+
 export function recordPerception(analysisId, classification) {
   return invoke("record-perception", { analysis_id: analysisId, classification });
 }
-export function dictionaryAdmin(operation, details = {}) { return invoke("dictionary-admin", { operation, ...details }); }
-export function operationalAnalytics() { return invoke("operational-analytics", {}); }
-export function knowledgeEvolution(operation, details = {}) { return invoke("knowledge-evolution", { operation, ...details }); }
-export function semanticIntelligence(operation, details = {}) { return invoke("semantic-intelligence", { operation, ...details }); }
+
+export function dictionaryOperation(operation, payload = {}) {
+  return invoke("dictionary-admin", { operation, ...payload });
+}
+
+export function fetchAnalytics() {
+  return invoke("operational-analytics", {});
+}
+
+export function semanticOperation(operation, payload = {}) {
+  return invoke("semantic-intelligence", { operation, ...payload });
+}
