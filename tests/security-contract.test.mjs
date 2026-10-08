@@ -24,7 +24,8 @@ test("frontend POC não tem login nem sessão", async () => {
     assert.doesNotMatch(source, /login-form|password|Entrar|signIn|signOut/i);
   }
   assert.doesNotMatch(app, /auth\.js|hasSession|signIn|signOut/);
-  assert.doesNotMatch(api, /auth\.js|Authorization|accessToken/);
+  assert.doesNotMatch(api, /auth\.js|accessToken|signIn|signOut/);
+  assert.match(api, /Authorization: `Bearer \${supabaseAnonKey}`/);
   assert.match(api, /analyze-perception/);
   assert.match(api, /record-perception/);
   assert.match(api, /dictionary-admin/);

@@ -15,6 +15,7 @@ async function invoke(functionName, payload) {
       headers: {
         "Content-Type": "application/json",
         apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify(payload),
     });
