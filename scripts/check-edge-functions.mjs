@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { strict as assert } from "node:assert";
 
-const functions = ["analyze-perception", "record-perception", "dictionary-admin", "operational-analytics", "semantic-intelligence"];
+const functions = ["analyze-perception", "record-perception", "dictionary-admin", "operational-analytics", "semantic-intelligence", "knowledge-evolution"];
 
 for (const name of functions) {
   const source = await readFile(new URL(`../supabase/functions/${name}/index.ts`, import.meta.url), "utf8");

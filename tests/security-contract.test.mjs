@@ -11,15 +11,16 @@ test("configuração pública não contém secrets de servidor", async () => {
 });
 
 test("frontend POC não tem login nem sessão", async () => {
-  const [html, app, api, admin, analytics, semantic] = await Promise.all([
+  const [html, app, api, admin, analytics, semantic, evolution] = await Promise.all([
     read("index.html"),
     read("js/app.js"),
     read("js/api.js"),
     read("js/admin.js"),
     read("js/analytics.js"),
     read("js/semantic.js"),
+    read("js/evolution.js"),
   ]);
-  for (const source of [html, app, admin, analytics, semantic]) {
+  for (const source of [html, app, admin, analytics, semantic, evolution]) {
     assert.doesNotMatch(source, /login-form|password|Entrar|signIn|signOut/i);
   }
   assert.doesNotMatch(app, /auth\.js|hasSession|signIn|signOut/);
@@ -29,6 +30,7 @@ test("frontend POC não tem login nem sessão", async () => {
   assert.match(api, /dictionary-admin/);
   assert.match(api, /operational-analytics/);
   assert.match(api, /semantic-intelligence/);
+  assert.match(api, /knowledge-evolution/);
 });
 
 test("modelo Gemini padrão é explicitamente configurável", async () => {
@@ -45,14 +47,15 @@ test("analista conduz a conversa antes de liberar validação", async () => {
 });
 
 test("Edge Functions do POC são abertas e enxutas", async () => {
-  const [analyze, record, dictionary, analytics, semantic] = await Promise.all([
+  const [analyze, record, dictionary, analytics, semantic, evolution] = await Promise.all([
     read("supabase/functions/analyze-perception/index.ts"),
     read("supabase/functions/record-perception/index.ts"),
     read("supabase/functions/dictionary-admin/index.ts"),
     read("supabase/functions/operational-analytics/index.ts"),
     read("supabase/functions/semantic-intelligence/index.ts"),
+    read("supabase/functions/knowledge-evolution/index.ts"),
   ]);
-  for (const source of [analyze, record, dictionary, analytics, semantic]) {
+  for (const source of [analyze, record, dictionary, analytics, semantic, evolution]) {
     assert.match(source, /Access-Control-Allow-Origin": "\*"/);
     assert.doesNotMatch(source, /authorize|user_roles|consume_edge_rate_limit|ALLOWED_ORIGIN/);
   }
@@ -70,4 +73,21 @@ test("pontos evolutivos 2-4 preservam auditoria e não decidem sozinhos", async 
   assert.match(semantic, /operational_anomalies/);
   assert.match(semantic, /gemini-embedding-001/);
   assert.match(migration, /register_entity_evidence/);
+});
+
+test("MVP5 aberto sugere sem decidir; humano aprova em tela", async () => {
+  const [evolution, migration, frontend] = await Promise.all([
+    read("supabase/functions/knowledge-evolution/index.ts"),
+    read("supabase/migrations/20261003000000_poc_knowledge.sql"),
+    read("js/evolution.js"),
+  ]);
+  assert.match(evolution, /knowledge_suggestions/);
+  assert.match(evolution, /review_knowledge_suggestion/);
+  assert.match(evolution, /poc-evolution\.0/);
+  assert.match(migration, /review_knowledge_suggestion/);
+  assert.match(migration, /entity_relations/);
+  assert.match(migration, /taxonomy_refinements/);
+  assert.match(frontend, /evolutionOperation\("list"/);
+  assert.match(frontend, /evolutionOperation\("review"/);
+  assert.match(frontend, /evolutionOperation\("generate"/);
 });

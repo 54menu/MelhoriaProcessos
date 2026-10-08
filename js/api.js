@@ -48,3 +48,7 @@ export function fetchAnalytics() {
 export function semanticOperation(operation, payload = {}) {
   return invoke("semantic-intelligence", { operation, ...payload });
 }
+
+export function evolutionOperation(operation, payload = {}) {
+  return invoke("knowledge-evolution", { operation, ...payload });
+}
