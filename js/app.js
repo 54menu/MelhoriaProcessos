@@ -94,6 +94,12 @@ function renderInterpretation(data) {
 }
 
 input.addEventListener("input", () => { count.textContent = `${input.value.length} / 2000`; });
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = input.value.trim(); if (!message) return;
