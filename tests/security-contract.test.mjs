@@ -76,6 +76,26 @@ test("pontos evolutivos 2-4 preservam auditoria e não decidem sozinhos", async 
   assert.match(migration, /register_entity_evidence/);
 });
 
+test("produto é quarto eixo operacional (livre, opcional, com dicionário)", async () => {
+  const [analyze, record, dictionary, analytics, migration, app, analyticsJs] = await Promise.all([
+    read("supabase/functions/analyze-perception/index.ts"),
+    read("supabase/functions/record-perception/index.ts"),
+    read("supabase/functions/dictionary-admin/index.ts"),
+    read("supabase/functions/operational-analytics/index.ts"),
+    read("supabase/migrations/20261009000000_poc_produto.sql"),
+    read("js/app.js"),
+    read("js/analytics.js"),
+  ]);
+  assert.match(analyze, /"produto"/);
+  assert.match(record, /"produto"/);
+  assert.match(dictionary, /"produto"/);
+  assert.match(analytics, /by_product/);
+  assert.match(migration, /produto/);
+  assert.match(migration, /operational_anomalies/);
+  assert.match(app, /produto/);
+  assert.match(analyticsJs, /by_product/);
+});
+
 test("MVP5 aberto sugere sem decidir; humano aprova em tela", async () => {
   const [evolution, migration, frontend] = await Promise.all([
     read("supabase/functions/knowledge-evolution/index.ts"),

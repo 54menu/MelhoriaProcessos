@@ -5,7 +5,7 @@ const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.5-flash-lite";
 const TYPES = ["reclamacao", "sugestao", "duvida", "elogio", "outro"] as const;
 const CATEGORIES = ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"] as const;
 const EVIDENCE = ["observed", "inferred", "suggested"] as const;
-const FIELD_NAMES = ["tipo", "processo", "subprocesso", "sistema", "categoria_problema"] as const;
+const FIELD_NAMES = ["tipo", "processo", "subprocesso", "sistema", "produto", "categoria_problema"] as const;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -58,11 +58,11 @@ async function createAnalysisSession(history: Turn[], rawResponse: unknown, dial
 function promptFor(history: Turn[]) {
   return `Você é um analista de processos conversando em português brasileiro. Conduza uma conversa natural, direta e acolhedora, como em um chat. Seu objetivo é entender uma percepção antes de classificá-la, nunca preencher um formulário cedo demais.
 
-Use 5W2H como guia flexível: o que aconteceu ou é proposto; onde/em qual processo e sistema; quem é afetado; quando/frequência; impacto; como ocorre hoje; e expectativa de melhoria. Não interrogue todos os itens se não forem relevantes. Em cada turno, faça apenas UMA pergunta curta, prioritizando a lacuna que mais ajuda a entender o caso. Não invente fatos e não transforme inferência em fato.
+Use 5W2H como guia flexível: o que aconteceu ou é proposto; onde/em qual processo, sistema e produto; quem é afetado; quando/frequência; impacto; como ocorre hoje; e expectativa de melhoria. Não interrogue todos os itens se não forem relevantes. Em cada turno, faça apenas UMA pergunta curta, prioritizando a lacuna que mais ajuda a entender o caso. Não invente fatos e não transforme inferência em fato.
 
 Enquanto faltarem contexto suficiente, ready_for_validation deve ser false, summary deve ser null, draft pode ter null e assistant_message deve conter somente a próxima pergunta ou uma resposta breve seguida dessa pergunta. Quando houver entendimento suficiente de situação, processo/contexto e impacto ou intenção, ready_for_validation deve ser true, summary deve ser uma síntese curta e assistant_message deve convidar a pessoa a revisar o resumo. Nunca declare que algo foi registrado.
 
-Taxonomias: tipo = reclamacao, sugestao, duvida, elogio, outro. categoria_problema = erro, lentidao, acesso, usabilidade, integracao, processo, informacao, outro. Para cada campo draft, use evidence observed, inferred ou suggested e confidence entre 0 e 1. processo, subprocesso e sistema não são entidades homologadas.
+Taxonomias: tipo = reclamacao, sugestao, duvida, elogio, outro. categoria_problema = erro, lentidao, acesso, usabilidade, integracao, processo, informacao, outro. Para cada campo draft, use evidence observed, inferred ou suggested e confidence entre 0 e 1. processo, subprocesso, sistema e produto não são entidades homologadas; produto (ex.: Consorcio, CDC) é opcional e só deve ser preenchido quando mencionado ou claramente implicado, sem inventar.
 
 Histórico: ${JSON.stringify(history)}\nVersão: ${PROMPT_VERSION}`;
 }

@@ -28,7 +28,7 @@ async function loadInsights() {
   try {
     const data = await semanticOperation("insights", {});
     lines(pairs, data.semantic_pairs ?? [], (row) => `${row.similarity.toFixed(3)} · ${row.source_text} ⇄ ${row.target_text}`);
-    lines(anomalies, data.anomalies ?? [], (row) => `${row.recent_occurrences}x · ${row.sistema ?? "?"} · ${row.processo ?? "?"} · crescimento ${row.growth_ratio ?? "novo"}`);
+    lines(anomalies, data.anomalies ?? [], (row) => `${row.recent_occurrences}x · ${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.produto ?? "?"} · crescimento ${row.growth_ratio ?? "novo"}`);
     lines(coverage, [{ text: `${data.embedded_perceptions} percepções com embedding. ${data.warning}` }], (row) => row.text);
     return data;
   } catch (error) {

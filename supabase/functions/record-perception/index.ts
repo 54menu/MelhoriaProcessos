@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const TYPES = ["reclamacao", "sugestao", "duvida", "elogio", "outro"];
 const CATEGORIES = ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"];
-const FIELDS = ["tipo", "processo", "subprocesso", "sistema", "categoria_problema"];
+const FIELDS = ["tipo", "processo", "subprocesso", "sistema", "produto", "categoria_problema"];
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -10,7 +10,7 @@ const corsHeaders = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-type Classification = { tipo: string; processo: string | null; subprocesso: string | null; sistema: string | null; categoria_problema: string };
+type Classification = { tipo: string; processo: string | null; subprocesso: string | null; sistema: string | null; produto: string | null; categoria_problema: string };
 
 function reply(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: corsHeaders });
@@ -25,8 +25,8 @@ function validClassification(value: unknown): value is Classification {
   if (!value || typeof value !== "object") return false;
   const data = value as Record<string, unknown>;
   if (!FIELDS.every((field) => field in data)) return false;
-  const processo = cleanText(data.processo); const subprocesso = cleanText(data.subprocesso); const sistema = cleanText(data.sistema);
-  return typeof data.tipo === "string" && TYPES.includes(data.tipo) && typeof data.categoria_problema === "string" && CATEGORIES.includes(data.categoria_problema) && processo !== undefined && subprocesso !== undefined && sistema !== undefined;
+  const processo = cleanText(data.processo); const subprocesso = cleanText(data.subprocesso); const sistema = cleanText(data.sistema); const produto = cleanText(data.produto);
+  return typeof data.tipo === "string" && TYPES.includes(data.tipo) && typeof data.categoria_problema === "string" && CATEGORIES.includes(data.categoria_problema) && processo !== undefined && subprocesso !== undefined && sistema !== undefined && produto !== undefined;
 }
 
 Deno.serve(async (request) => {
@@ -47,6 +47,7 @@ Deno.serve(async (request) => {
       processo: cleanText(classification.processo),
       subprocesso: cleanText(classification.subprocesso),
       sistema: cleanText(classification.sistema),
+      produto: cleanText(classification.produto),
       categoria_problema: classification.categoria_problema,
     };
     const { data, error } = await serviceClient.rpc("persist_validated_perception", { p_session_id: payload.analysis_id, p_classification: canonical });

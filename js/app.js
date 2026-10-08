@@ -8,7 +8,7 @@ const count = document.querySelector("#character-count");
 const status = document.querySelector("#status");
 const types = ["reclamacao", "sugestao", "duvida", "elogio", "outro"];
 const categories = ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"];
-const labels = { tipo: "Tipo", processo: "Processo", subprocesso: "Subprocesso", sistema: "Sistema", categoria_problema: "Natureza da situação" };
+const labels = { tipo: "Tipo", processo: "Processo", subprocesso: "Subprocesso", sistema: "Sistema", produto: "Produto", categoria_problema: "Natureza da situação" };
 const humanLabels = { reclamacao: "Reclamação", sugestao: "Sugestão", duvida: "Dúvida", elogio: "Elogio", outro: "Outro", erro: "Erro", lentidao: "Lentidão", acesso: "Acesso", usabilidade: "Usabilidade", integracao: "Integração", processo: "Processo", informacao: "Informação" };
 let history = [];
 
@@ -41,7 +41,7 @@ function fieldControl(name, value) {
 function register(data, values, card) {
   card.querySelectorAll("button").forEach((item) => { item.disabled = true; });
   setStatus("Registrando o que você confirmou…");
-  ["processo", "subprocesso", "sistema"].forEach((name) => { values[name] = typeof values[name] === "string" ? values[name].trim() || null : null; });
+  ["processo", "subprocesso", "sistema", "produto"].forEach((name) => { values[name] = typeof values[name] === "string" ? values[name].trim() || null : null; });
   recordPerception(data.analysis_id, values).then(() => {
     addMessage("assistant", "Pronto. Registrei sua percepção para apoiar a melhoria do processo.");
     history = []; offerNextStep();

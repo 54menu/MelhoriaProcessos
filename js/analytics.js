@@ -5,6 +5,7 @@ const metrics = document.querySelector("#metrics");
 const recurrences = document.querySelector("#recurrences");
 const systems = document.querySelector("#systems");
 const processes = document.querySelector("#processes");
+const products = document.querySelector("#products");
 const evolution = document.querySelector("#evolution");
 const coverage = document.querySelector("#unit-coverage");
 
@@ -51,10 +52,11 @@ async function load() {
       card.append(strong);
       metrics.append(card);
     });
-    barList(recurrences, data.top_recurrences, (row) => `${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.subprocesso ?? "?"} · ${row.categoria_problema}`);
+    barList(recurrences, data.top_recurrences, (row) => `${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.subprocesso ?? "?"} · ${row.produto ?? "?"} · ${row.categoria_problema}`);
     barList(systems, data.by_system, (row) => row.name);
     barList(processes, data.by_process, (row) => row.name);
-    barList(evolution, data.daily_evolution, (row) => `${row.occurrence_date} · ${row.sistema ?? "?"} · ${row.processo ?? "?"}`);
+    barList(products, data.by_product ?? [], (row) => row.name);
+    barList(evolution, data.daily_evolution, (row) => `${row.occurrence_date} · ${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.produto ?? "?"}`);
     coverage.textContent = data.unit_coverage.message;
     setStatus(`Indicadores de recorrência exata. ${data.note ?? ""}`);
   } catch (error) {

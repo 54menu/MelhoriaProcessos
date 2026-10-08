@@ -319,10 +319,11 @@ tipo
 processo
 subprocesso
 sistema
+produto
 categoria_problema
 ```
 
-Os campos não são criados pela IA.
+Os campos não são criados pela IA. `produto` (ex.: Consórcio, CDC) é texto livre e opcional: processo, subprocesso e sistema normalmente pertencem a um produto, que evolui como 4º tipo de entidade no dicionário.
 
 ---
 

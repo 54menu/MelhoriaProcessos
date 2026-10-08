@@ -14,12 +14,13 @@ A IA recebe o histórico curto da conversa e devolve apenas JSON validado. Cada 
     "processo": { "value": null, "evidence": "suggested", "confidence": 0.15 },
     "subprocesso": { "value": null, "evidence": "suggested", "confidence": 0.10 },
     "sistema": { "value": "sistema de busca de veículos", "evidence": "observed", "confidence": 0.80 },
+    "produto": { "value": "Financiamento de veículos", "evidence": "inferred", "confidence": 0.55 },
     "categoria_problema": { "value": "usabilidade", "evidence": "inferred", "confidence": 0.62 }
   }
 }
 ```
 
-Quando houver contexto suficiente, `ready_for_validation` passa a `true`, `summary` torna-se uma síntese curta e `tipo` e `categoria_problema` são obrigatoriamente preenchidos. Só então o backend cria `analysis_id`, que permite a confirmação humana pelo fluxo existente.
+Quando houver contexto suficiente, `ready_for_validation` passa a `true`, `summary` torna-se uma síntese curta e `tipo` e `categoria_problema` são obrigatoriamente preenchidos. `produto` (ex.: Consórcio, CDC) é opcional: só preenchido quando mencionado ou claramente implicado, nunca inventado. Só então o backend cria `analysis_id`, que permite a confirmação humana pelo fluxo existente.
 
 ## Guia conversacional
 

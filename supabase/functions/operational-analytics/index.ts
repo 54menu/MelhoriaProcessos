@@ -37,6 +37,7 @@ Deno.serve(async (request) => {
       top_recurrences: rows,
       by_system: grouped("sistema"),
       by_process: grouped("processo"),
+      by_product: grouped("produto"),
       daily_evolution: (dailyResult.data ?? []).reverse(),
       unit_coverage: { available: false, message: "Unidade não é coletada no fluxo atual; não há concentração por unidade a reportar." },
       note: "Recorrência = combinação exata de campos. Equivalência semântica está em semantic-intelligence.",
