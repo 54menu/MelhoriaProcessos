@@ -97,7 +97,7 @@ begin
   end if;
   if v_entity_id is null then
     insert into public.entities (entity_type, canonical_name, normalized_name)
-    values (trim(p_value), trim(p_value), v_normalized)
+    values (p_entity_type, trim(p_value), v_normalized)
     returning id into v_entity_id;
   end if;
   insert into public.entity_evidence (entity_id, perception_id, field_name, extracted_value, evidence_state)

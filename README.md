@@ -26,6 +26,7 @@ GitHub Pages → Supabase Edge Functions → Gemini → revisão humana → regi
   - `20261002000001_poc_analytics.sql`: `recurrence_summary`, `recurrence_daily`.
   - `20261002000002_poc_semantic.sql`: `pgvector`, `perception_embeddings`, `unembedded_perceptions`, `semantic_neighbors`, `semantic_similar_pairs`, `operational_anomalies`.
   - `20261003000000_poc_knowledge.sql`: `knowledge_suggestions`, `entity_relations`, `taxonomy_refinements`, `review_knowledge_suggestion` (descobrir/homologar, agrupar/consolidar, relacionar, refinar taxonomia — só após aprovação em tela).
+  - `20261008000000_poc_fix_entity_type.sql`: corrige `register_entity_evidence` (gravava o valor na coluna `entity_type`).
 - Sem policies públicas (só `service_role`). Sem `user_roles`, sem `ALLOWED_ORIGIN` restritivo, sem rate-limit.
 
 ## Preparação local
@@ -34,7 +35,7 @@ GitHub Pages → Supabase Edge Functions → Gemini → revisão humana → regi
 2. Em um projeto Supabase limpo (ou após `supabase db reset`), aplique em ordem:
    `20260930000000_poc_baseline.sql`, `20261002000000_poc_dictionary.sql`,
    `20261002000001_poc_analytics.sql`, `20261002000002_poc_semantic.sql`,
-   `20261003000000_poc_knowledge.sql`.
+   `20261003000000_poc_knowledge.sql`, `20261008000000_poc_fix_entity_type.sql`.
 3. Cadastre os secrets das Edge Functions:
    ```text
    GEMINI_API_KEY=<chave do Gemini>
