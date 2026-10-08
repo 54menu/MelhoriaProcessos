@@ -67,19 +67,38 @@ Taxonomias: tipo = reclamacao, sugestao, duvida, elogio, outro. categoria_proble
 Histórico: ${JSON.stringify(history)}\nVersão: ${PROMPT_VERSION}`;
 }
 
+async function invokeGemini(history: Turn[]): Promise<{ rawResponse: unknown; dialogue: Dialogue }> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY"); if (!apiKey) throw new Error("gemini_not_configured");
+  let lastError = "gemini_unavailable";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const provider = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: promptFor(history) }] }], generationConfig: { responseMimeType: "application/json", responseSchema, temperature: 0.2 } }) });
+    if (provider.status === 429 || provider.status >= 500) { lastError = `gemini_${provider.status}`; continue; }
+    if (!provider.ok) throw new Error(`gemini_${provider.status}`);
+    const rawResponse = await provider.json().catch(() => null);
+    let parsed: unknown; try { parsed = JSON.parse(rawResponse?.candidates?.[0]?.content?.parts?.[0]?.text); } catch { parsed = null; }
+    if (validDialogue(parsed)) return { rawResponse, dialogue: parsed };
+    lastError = "invalid_provider_response";
+  }
+  throw new Error(lastError);
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method !== "POST") return reply(405, { error: { code: "method_not_allowed", message: "Use POST." } });
   try {
     const payload = await request.json().catch(() => null); const history = turns(payload && typeof payload === "object" ? (payload as Record<string, unknown>).messages : null);
     if (!history) return reply(400, { error: { code: "invalid_conversation", message: "Envie uma conversa válida, com até 12 mensagens e 2.000 caracteres do usuário." } });
-    const apiKey = Deno.env.get("GEMINI_API_KEY"); if (!apiKey) throw new Error("gemini_not_configured");
-    const provider = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: promptFor(history) }] }], generationConfig: { responseMimeType: "application/json", responseSchema, temperature: 0.2 } }) });
-    if (!provider.ok) throw new Error(`gemini_${provider.status}`);
-    const rawResponse = await provider.json(); let parsed: unknown; try { parsed = JSON.parse(rawResponse?.candidates?.[0]?.content?.parts?.[0]?.text); } catch { parsed = null; }
-    if (!validDialogue(parsed)) return reply(502, { error: { code: "invalid_provider_response", message: "A IA não retornou o contrato de conversa esperado." } });
-    const analysisId = parsed.ready_for_validation ? await createAnalysisSession(history, rawResponse, parsed) : null;
-    return reply(200, { analysis_id: analysisId, contract_version: PROMPT_VERSION, model: MODEL, ...parsed });
+    let dialogue: Dialogue; let rawResponse: unknown;
+    try {
+      ({ rawResponse, dialogue } = await invokeGemini(history));
+    } catch (error) {
+      if (error instanceof Error && error.message === "invalid_provider_response") {
+        return reply(502, { error: { code: "invalid_provider_response", message: "A IA não retornou o contrato de conversa esperado." } });
+      }
+      throw error;
+    }
+    const analysisId = dialogue.ready_for_validation ? await createAnalysisSession(history, rawResponse, dialogue) : null;
+    return reply(200, { analysis_id: analysisId, contract_version: PROMPT_VERSION, model: MODEL, ...dialogue });
   } catch (error) {
     const code = error instanceof Error ? error.message : "unexpected_error"; console.error("conversation analysis failed", code);
     return reply(502, { error: { code: "upstream_failure", message: "Não foi possível continuar a conversa agora." } });

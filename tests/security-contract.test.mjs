@@ -44,7 +44,8 @@ test("analista conduz a conversa antes de liberar validação", async () => {
   const source = await read("supabase/functions/analyze-perception/index.ts");
   assert.match(source, /ready_for_validation/);
   assert.match(source, /5W2H/);
-  assert.match(source, /const analysisId = parsed\.ready_for_validation/);
+  assert.match(source, /createAnalysisSession\(history, rawResponse, dialogue\)/);
+  assert.match(source, /for \(let attempt = 0; attempt < 2/);
 });
 
 test("Edge Functions do POC são abertas e enxutas", async () => {
