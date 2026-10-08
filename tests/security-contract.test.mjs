@@ -94,6 +94,7 @@ test("produto é quarto eixo operacional (livre, opcional, com dicionário)", as
   assert.match(migration, /operational_anomalies/);
   assert.match(app, /produto/);
   assert.match(analyticsJs, /by_product/);
+  assert.doesNotMatch(analyze, /Consorcio|Consórcio|CDC/);
 });
 
 test("MVP5 aberto sugere sem decidir; humano aprova em tela", async () => {

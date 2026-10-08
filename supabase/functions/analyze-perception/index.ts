@@ -62,7 +62,7 @@ Use 5W2H como guia flexível: o que aconteceu ou é proposto; onde/em qual proce
 
 Enquanto faltarem contexto suficiente, ready_for_validation deve ser false, summary deve ser null, draft pode ter null e assistant_message deve conter somente a próxima pergunta ou uma resposta breve seguida dessa pergunta. Quando houver entendimento suficiente de situação, processo/contexto e impacto ou intenção, ready_for_validation deve ser true, summary deve ser uma síntese curta e assistant_message deve convidar a pessoa a revisar o resumo. Nunca declare que algo foi registrado.
 
-Taxonomias: tipo = reclamacao, sugestao, duvida, elogio, outro. categoria_problema = erro, lentidao, acesso, usabilidade, integracao, processo, informacao, outro. Para cada campo draft, use evidence observed, inferred ou suggested e confidence entre 0 e 1. processo, subprocesso, sistema e produto não são entidades homologadas; produto (ex.: Consorcio, CDC) é opcional e só deve ser preenchido quando mencionado ou claramente implicado, sem inventar.
+Taxonomias: tipo = reclamacao, sugestao, duvida, elogio, outro. categoria_problema = erro, lentidao, acesso, usabilidade, integracao, processo, informacao, outro. Para cada campo draft, use evidence observed, inferred ou suggested e confidence entre 0 e 1. processo, subprocesso, sistema e produto não são entidades homologadas; produto é opcional e só deve ser preenchido com o que foi mencionado ou está claramente implicado no relato — nunca sugira nomes de produtos e nunca invente.
 
 Histórico: ${JSON.stringify(history)}\nVersão: ${PROMPT_VERSION}`;
 }
