@@ -33,7 +33,7 @@ Limites: comparação de análises em snapshots, não conversas completas; casos
 5. Fazer piloto supervisionado com identidade e acesso adequados. Medir correções, turnos, esforço humano, latência e custo por percepção concluída.
 6. Adotar somente com melhoria demonstrada e ausência de regressões relevantes; retornar à configuração anterior em caso de falhas.
 
-A implementação técnica não certifica o modelo nem libera autonomia. A publicação e os resultados desta execução são registrados em `DEPLOYMENT_ABCD.md`.
+A implementação técnica não certifica o modelo nem libera autonomia. A publicação e os resultados desta execução são registrados em [DEPLOYMENT_ABCD.md](DEPLOYMENT_ABCD.md). Os 60 testes técnicos passaram localmente e no GitHub. A comparação real foi executada: modelo atual com categoria 17/20; candidato sem análises concluídas por limites/indisponibilidade/timeout. Seleção definitiva e piloto permanecem pendentes; o modelo atual foi preservado.
 
 ## Referências consultadas
 

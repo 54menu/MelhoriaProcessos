@@ -1,0 +1,721 @@
+{
+  "status": "completed_pending_review",
+  "metadata": {
+    "dataset_version": "classification-reference.1",
+    "dataset_sha256": "056b07b688ef21ac3d966a191ba07d3f0f8e0987d43987a277fa8a46cf8c9136",
+    "contract_version": "classification.1",
+    "contract_sha256": "55e4aa9ce544ec94e5f4c4e235ad055bf07ed34483b8ed71c2fbdc85a1e64cd7",
+    "taxonomy_version": "operational-taxonomy.1",
+    "taxonomy_sha256": "49fc75dcb2a3302411e0f570db0bde47d62760cdaf27cf9235d65a5de2ed799a",
+    "split": "dev",
+    "prompt_version": "contextual-classification.1",
+    "prompt_sha256": "5ae39f8f0afd99252b58dbd8493419a3382124f25e18e4ce574e6fe787d3e2ad",
+    "dictionary_version": "none",
+    "dictionary_sha256": "71a74ef8003a9607d1511013fca9e2de405b293ea4fcf13e6d7b196d0704fb7b",
+    "examples_sha256": "9c563f8167795de32ec9c05707e77b505f1e85da93aad673843571f629d0268a",
+    "implementation_sha256": "df9485ffc438cb01b8caa1e09b638a0cb855b8af4781ade7a55ca8b9c55b1333",
+    "config_sha256": "8806f0e4e3ec5cc9277cd5a43bc55817c66f5b1be2eb521b40561f05dbfa963a",
+    "max_provider_calls": 80,
+    "semantic_retrieval": "disabled_for_both",
+    "cases": 20
+  },
+  "result_sha256": "4df8bd0c65a6cb0d3e3a856b60e478228523358715a836d465b02922f422988c",
+  "reports": [
+    {
+      "model": "gemini-3.5-flash-lite",
+      "repetition": 1,
+      "purpose": "evaluation_against_proposed_labels_not_production_certification",
+      "total_cases": 20,
+      "submitted": 20,
+      "missing": 0,
+      "contract": {
+        "valid": 20,
+        "total": 20,
+        "rate": 1
+      },
+      "fields": {
+        "tipo": {
+          "correct": 20,
+          "total": 20,
+          "rate": 1
+        },
+        "processo": {
+          "correct": 3,
+          "total": 3,
+          "rate": 1
+        },
+        "subprocesso": {
+          "correct": 3,
+          "total": 3,
+          "rate": 1
+        },
+        "sistema": {
+          "correct": 19,
+          "total": 19,
+          "rate": 1
+        },
+        "produto": {
+          "correct": 7,
+          "total": 7,
+          "rate": 1
+        },
+        "categoria_problema": {
+          "correct": 17,
+          "total": 20,
+          "rate": 0.85
+        }
+      },
+      "readiness": {
+        "correct": 16,
+        "total": 20,
+        "rate": 0.8
+      },
+      "single_issue": {
+        "correct": 19,
+        "total": 20,
+        "rate": 0.95
+      },
+      "unnecessary_questions": 4,
+      "premature_reviews": 0,
+      "latency": {
+        "samples": 20,
+        "mean_ms": 6036.670350000006,
+        "p95_ms": 9884.986399999994
+      },
+      "cost_usd": null,
+      "human_reviewed_cases": 0,
+      "semantic_fabrication_rate": null,
+      "limitations": [
+        "Trecho presente não comprova suporte semântico: invenções, negações e pertinência exigem revisão humana.",
+        "Campos sem gabarito não entram no denominador.",
+        "Ausências e contratos inválidos contam como erro, nunca são descartados.",
+        "Latência e custo são informados pelo executor, não estimados pelo avaliador."
+      ],
+      "details": [
+        {
+          "case_id": "A01",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A03",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A05",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A07",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A09",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A11",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A13",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": [
+            "categoria_problema"
+          ]
+        },
+        {
+          "case_id": "A15",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A17",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A19",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": [
+            "categoria_problema"
+          ]
+        },
+        {
+          "case_id": "A21",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A23",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A25",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A27",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A29",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A31",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A33",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A35",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A37",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": []
+        },
+        {
+          "case_id": "A39",
+          "valid": true,
+          "errors": [],
+          "mismatched_fields": [
+            "categoria_problema"
+          ]
+        }
+      ],
+      "failed_calls": 0,
+      "provider_attempts": 24,
+      "usage_complete": false
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "repetition": 1,
+      "purpose": "evaluation_against_proposed_labels_not_production_certification",
+      "total_cases": 20,
+      "submitted": 20,
+      "missing": 0,
+      "contract": {
+        "valid": 0,
+        "total": 20,
+        "rate": 0
+      },
+      "fields": {
+        "tipo": {
+          "correct": 0,
+          "total": 20,
+          "rate": 0
+        },
+        "processo": {
+          "correct": 0,
+          "total": 3,
+          "rate": 0
+        },
+        "subprocesso": {
+          "correct": 0,
+          "total": 3,
+          "rate": 0
+        },
+        "sistema": {
+          "correct": 0,
+          "total": 19,
+          "rate": 0
+        },
+        "produto": {
+          "correct": 0,
+          "total": 7,
+          "rate": 0
+        },
+        "categoria_problema": {
+          "correct": 0,
+          "total": 20,
+          "rate": 0
+        }
+      },
+      "readiness": {
+        "correct": 0,
+        "total": 20,
+        "rate": 0
+      },
+      "single_issue": {
+        "correct": 0,
+        "total": 20,
+        "rate": 0
+      },
+      "unnecessary_questions": 0,
+      "premature_reviews": 0,
+      "latency": {
+        "samples": 20,
+        "mean_ms": 18023.565240000004,
+        "p95_ms": 30275.750500000024
+      },
+      "cost_usd": null,
+      "human_reviewed_cases": 0,
+      "semantic_fabrication_rate": null,
+      "limitations": [
+        "Trecho presente não comprova suporte semântico: invenções, negações e pertinência exigem revisão humana.",
+        "Campos sem gabarito não entram no denominador.",
+        "Ausências e contratos inválidos contam como erro, nunca são descartados.",
+        "Latência e custo são informados pelo executor, não estimados pelo avaliador."
+      ],
+      "details": [
+        {
+          "case_id": "A01",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema",
+            "produto"
+          ]
+        },
+        {
+          "case_id": "A03",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A05",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "produto"
+          ]
+        },
+        {
+          "case_id": "A07",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A09",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A11",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema",
+            "produto"
+          ]
+        },
+        {
+          "case_id": "A13",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema",
+            "produto"
+          ]
+        },
+        {
+          "case_id": "A15",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A17",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema",
+            "produto"
+          ]
+        },
+        {
+          "case_id": "A19",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A21",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A23",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A25",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A27",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A29",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A31",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "processo",
+            "subprocesso",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A33",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "processo",
+            "subprocesso",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A35",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "produto",
+            "processo",
+            "subprocesso",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A37",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema"
+          ]
+        },
+        {
+          "case_id": "A39",
+          "valid": false,
+          "errors": [
+            "$:type"
+          ],
+          "mismatched_fields": [
+            "tipo",
+            "categoria_problema",
+            "sistema",
+            "produto"
+          ]
+        }
+      ],
+      "failed_calls": 20,
+      "provider_attempts": 40,
+      "usage_complete": false
+    }
+  ],
+  "pairs": [
+    {
+      "case_id": "A01",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A03",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A05",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A07",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A09",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A11",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A13",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A15",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A17",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A19",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A21",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A23",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A25",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A27",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A29",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A31",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A33",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A35",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A37",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    },
+    {
+      "case_id": "A39",
+      "repetition": 1,
+      "missing": true,
+      "readiness_disagrees": null,
+      "fields_disagree": null
+    }
+  ],
+  "decision": {
+    "selected_model": null,
+    "retained_model": "gemini-3.5-flash-lite",
+    "production_change": false,
+    "reasons": [
+      "candidate_unavailable_in_this_run",
+      "baseline_category_below_proposed_90_percent_target",
+      "four_unnecessary_questions",
+      "labels_and_semantics_pending_human_review",
+      "supervised_pilot_pending"
+    ]
+  },
+  "limitations": [
+    "Base sintética proposta: não certifica acurácia operacional.",
+    "Sem recuperação por embeddings; ambos usam o mesmo snapshot e busca lexical.",
+    "Latência por análise, não por conversa concluída. Custos permanecem nulos sem medição financeira.",
+    "Modelos com configuração padrão de raciocínio; versões retornadas e consumo ficam nas tentativas."
+  ],
+  "transport": {
+    "type": "temporary_supabase_relay",
+    "provider_timeout_ms": 14000,
+    "client_attempt_timeout_ms": 15000,
+    "removed_after_run": true
+  }
+}

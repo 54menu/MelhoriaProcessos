@@ -1,6 +1,6 @@
 # Entrega C — revisão humana e indicadores canônicos
 
-Implementada localmente. Nenhum banco remoto foi alterado e nenhuma função foi publicada nesta entrega.
+Implementada e inicialmente testada localmente. Publicação posterior autorizada e realizada durante a entrega D: veja [DEPLOYMENT_ABCD.md](DEPLOYMENT_ABCD.md).
 
 ## Comportamento entregue
 
@@ -42,4 +42,4 @@ Limites: a migração semântica de pgvector é excluída somente do ambiente PG
 5. Repetir a mesma requisição e verificar que não há duplicação. Testar falha recuperável e sessão expirada.
 6. Confirmar conceito novo e conferir que permanece candidato. Verificar agrupamento de alias e consolidação nos indicadores.
 
-A publicação e esse teste integrado permanecem pendentes. A entrega seguinte não foi iniciada.
+Este era o roteiro pendente ao encerrar a entrega C. A publicação, os testes remotos e o avanço para D estão registrados em [DEPLOYMENT_ABCD.md](DEPLOYMENT_ABCD.md).
