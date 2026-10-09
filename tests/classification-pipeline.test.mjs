@@ -35,6 +35,14 @@ function setup(overrides = {}) {
 }
 const request = (body = { messages }) => new Request("http://localhost/analyze", { method: "POST", body: JSON.stringify(body) });
 
+test('E: pipeline consulta catálogo publicado e retirada afeta a próxima análise',async()=>{
+  const s=setup();let active={version:'curated.1',examples:[{id:'curated-fixture',status:'approved',text:messages[0].text,reviewed_by:'Fixture',reviewed_at:'2026-10-09',taxonomy_version:taxonomy.version,classification:Object.fromEntries(FIELDS.map(f=>[f,output().fields[f].value]))}]};
+  s.dependencies.repository.loadCatalog=async()=>structuredClone(active);
+  const first=await classify(messages,s.dependencies);assert.deepEqual(first.knowledge.example_ids,['curated-fixture']);assert.equal(first.knowledge.examples_version,'curated.1');
+  active={version:'curated.2',examples:[]};const second=await classify(messages,s.dependencies);
+  assert.deepEqual(second.knowledge.example_ids,[]);assert.notEqual(first.knowledge.examples_sha256,second.knowledge.examples_sha256);
+});
+
 test("B: caminho HTTP completo resolve alias, devolve draft compatível e grava somente sessão de revisão", async () => {
   const { rows, handler } = setup(); const result = await handler(request()); const body = await result.json();
   assert.equal(result.status, 200); assert.equal(body.contract_version, "classification.1");

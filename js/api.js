@@ -53,3 +53,7 @@ export function semanticOperation(operation, payload = {}) {
 export function evolutionOperation(operation, payload = {}) {
   return invoke("knowledge-evolution", { operation, ...payload });
 }
+
+export function curationOperation(operation, payload = {}) {
+  return invoke("knowledge-curation", { operation, ...payload });
+}

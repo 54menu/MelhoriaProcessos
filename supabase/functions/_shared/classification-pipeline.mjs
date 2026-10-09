@@ -19,6 +19,7 @@ async function fingerprint(value) {
 
 export async function classify(messages, { repository, provider, catalog, model, semanticSearch, signal, persistSession = true }) {
   const snapshot = await timed(s => repository.loadDictionary(s), 7000, signal);
+  if (repository.loadCatalog) catalog = await timed(s => repository.loadCatalog(s), 7000, signal);
   const warnings = snapshot.complete ? [] : ["dictionary_snapshot_limited"];
   let semanticIds = [];
   if (semanticSearch) {

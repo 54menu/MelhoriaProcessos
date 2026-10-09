@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Curadoria de correções</title><link rel="stylesheet" href="css/app.css"></head>
+<body><main class="layout admin-layout"><section class="panel admin-panel">
+<p class="eyebrow">Melhoria contínua</p><h1>Aprender com as correções</h1>
+<p class="intro">Uma correção individual é uma proposta, não uma regra. Revise o exemplo, avalie os efeitos e só então publique. <a href="index.html">Voltar ao relato</a> · <a href="evolution.html">Outras sugestões</a></p>
+<label for="filter">Situação</label><select id="filter"><option value="pending">Pendentes</option><option value="approved">Aprovados para avaliação</option><option value="active">Em uso</option><option value="rejected">Rejeitados</option><option value="retired">Retirados</option></select>
+<div class="admin-actions"><button id="refresh">Atualizar lista</button><button id="export" class="secondary">Exportar para avaliação</button></div>
+<p id="status" class="status" role="status"></p><div id="items" class="suggestions"></div><button id="more" hidden>Carregar mais</button>
+<section class="review"><h2>Publicar exemplos avaliados</h2><p>Exige comparação com a mesma base revisada, sem regressões, e revisão semântica declarada pelo curador. O relatório precisa corresponder ao catálogo atual. Esta POC não verifica a identidade do revisor.</p>
+<form id="publish-form" class="conversation-editor"><label>Seu nome<input id="publisher" required maxlength="120"></label><label>Relatório de avaliação<input id="report" type="file" accept=".json,application/json" required></label><button id="publish">Publicar após avaliação</button></form></section>
+</section></main><script src="js/config.js"></script><script type="module" src="js/curation.js"></script></body></html>

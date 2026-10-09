@@ -3,6 +3,7 @@ import { createHandler } from "../_shared/classification-pipeline.mjs";
 import { loadDictionary, semanticCandidates } from "../_shared/knowledge-context.mjs";
 import { invokeGemini, embedQuery } from "../_shared/classification-provider.mjs";
 import { exampleCatalog } from "../_shared/examples.generated.mjs";
+import { loadCuratedExamples } from "../_shared/curated-examples.mjs";
 
 const MODEL = Deno.env.get("CLASSIFICATION_MODEL") || Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const EMBEDDING_MODEL = Deno.env.get("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
@@ -19,6 +20,7 @@ Deno.serve(createHandler(() => {
     catalog: exampleCatalog,
     repository: {
       loadDictionary: (signal: AbortSignal) => loadDictionary(client, signal),
+      loadCatalog: (signal: AbortSignal) => loadCuratedExamples(client, signal),
       createSession: async (row: Record<string, unknown>, signal: AbortSignal) => {
         const { data, error } = await client.from("analysis_sessions").insert(row).select("id").single().abortSignal(signal);
         if (error || !data?.id) throw new Error("analysis_session_failed");

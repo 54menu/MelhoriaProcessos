@@ -68,6 +68,8 @@ Com Node.js 20+: `npm ci` e `npm run check`. A suíte usa PostgreSQL em memória
 
 Comparação de modelos: `npm run eval:models` prepara o plano; a execução real é explícita. Veja [entrega D](docs/DELIVERY_D.md). `CLASSIFICATION_MODEL` e `EVOLUTION_MODEL` permitem configurar modelos por finalidade, preservando `GEMINI_MODEL` como fallback.
 
+Curadoria de correções: [curation.html](curation.html), disponível também pela página Evolução. A [entrega E](docs/DELIVERY_E.md) separa aprovação, avaliação de regressão e publicação de exemplos. Aplicar `20261009200350_delivery_e_curated_examples.sql` e publicar `knowledge-curation` antes do novo `analyze-perception`. `npm run eval:knowledge` executa a comparação entre catálogos conforme os argumentos documentados.
+
 ## Segurança (escopo POC)
 
 - Modelo aberto, sem autenticação: adequado apenas para demonstração.

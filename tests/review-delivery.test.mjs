@@ -5,6 +5,11 @@ import { PGlite } from "@electric-sql/pglite";
 import { parseHTML } from "linkedom";
 import { createReview } from "../js/review.mjs";
 import { parseConfirmation, createRecordHandler } from "../supabase/functions/_shared/review-confirmation.mjs";
+import { assessRegression, jsonHash, loadCuratedExamples, createCurationHandler } from '../supabase/functions/_shared/curated-examples.mjs';
+import { selectContext } from '../supabase/functions/_shared/knowledge-context.mjs';
+import { curationCard } from '../js/curation-card.mjs';
+import { classificationSchema,taxonomy } from '../lib/classification-contract.mjs';
+import { PROMPT_VERSION } from '../supabase/functions/_shared/classification-provider.mjs';
 
 const classification = { tipo: "reclamacao", processo: null, subprocesso: null, sistema: "Portal", produto: null, categoria_problema: "erro" };
 const fields = Object.fromEntries(Object.entries(classification).map(([k,value]) => [k, { value, evidence: value ? "inferred" : "none", resolution: value ? "unresolved" : "absent", sources: value ? [{ message_index: 0, quote: "Portal falhou" }] : [] }]));
@@ -103,7 +108,7 @@ test('C: tabelas de revisão e funções não são acessíveis diretamente pelo 
   assert.equal(legacy.anon,false); assert.equal(legacy.server,true);
 });
 test('C: migração também funciona após a migração de produto já aplicada', async () => {
-  const c=migrationFiles.find(f=>f.includes('delivery_c')); const instance=await setup(migrationFiles.filter(f=>f!==c));
+  const c=migrationFiles.find(f=>f.includes('delivery_c')); const instance=await setup(migrationFiles.filter(f=>f<c));
   await instance.exec("with p as (insert into perceptions(original_text) values('Registro anterior') returning id) insert into classifications(perception_id,tipo,sistema,categoria_problema) select id,'reclamacao','Portal','erro' from p");
   await instance.exec(await readFile(new URL('../supabase/migrations/'+c,import.meta.url),'utf8'));
   assert.equal((await instance.query('select canonical_operational_analytics() as data')).rows[0].data.total_validated_perceptions,1); await instance.close();
@@ -129,4 +134,78 @@ test('C: tela exibe evidências com segurança, envia ajustes e permite repetir 
   submit(); assert.equal(calls,0); card.querySelector('[name=reviewer_label]').value='Pessoa';
   submit(); submit(); await new Promise(r=>setImmediate(r)); assert.equal(calls,1); assert.match(card.textContent,/Tente novamente/);
   submit(); await new Promise(r=>setImmediate(r)); assert.equal(calls,2); assert.equal(card.querySelector('button'),null); assert.ok(card.querySelector('[name=sistema]').disabled);
+});
+
+async function queued(){await persist(await session());return (await db.query('select id from correction_curations order by created_at desc limit 1')).rows[0].id;}
+async function approve(id){await db.query('select review_correction_example($1,true,$2,$3,$4,$5)',[id,'Portal falhou ao salvar',classification,'Curador teste','Texto generalizado e campos conferidos']);}
+async function snapshot(){return (await db.query('select curated_example_snapshot() as data')).rows[0].data;}
+async function publish(s){return db.query('select publish_curated_examples($1,$2,$3,$4)',[s.base_revision,s.candidate_fingerprint,'Curador teste',{status:'passed',candidate_fingerprint:s.candidate_fingerprint,report_sha256:'a'.repeat(64),reference:'fixture de teste, não avaliação real'}]);}
+test('E: correção entra na fila uma vez e aprovação não publica automaticamente',async()=>{
+  const id=await session();await persist(id);await persist(id);
+  assert.equal((await db.query('select count(*)::int n from correction_curations')).rows[0].n,1);
+  const c=(await db.query('select id,status from correction_curations')).rows[0];assert.equal(c.status,'pending');
+  await approve(c.id);const s=await snapshot();assert.equal(s.baseline.examples.length,0);assert.equal(s.candidate.examples.length,1);
+  assert.equal(s.candidate.examples[0].classification.sistema,'Portal');
+});
+test('E: confirmação sem mudanças não cria proposta artificial',async()=>{
+  await persist(await session(),classification,'Proposta original');
+  assert.equal((await db.query('select count(*)::int n from correction_curations')).rows[0].n,0);
+});
+test('E: rejeição exige justificativa e não altera o catálogo',async()=>{
+  const id=await queued();await assert.rejects(db.query('select review_correction_example($1,false,null,null,$2,$3)',[id,'Curador','']),/invalid_review/);
+  await db.query('select review_correction_example($1,false,null,null,$2,$3)',[id,'Curador','Não representa regra reutilizável']);
+  assert.equal((await snapshot()).candidate.examples.length,0);await assert.rejects(approve(id),/curation_unavailable/);
+});
+test('E: publicação exige avaliação, detecta snapshot obsoleto e permite retirada auditada',async()=>{
+  const id=await queued();await approve(id);const s=await snapshot();
+  await assert.rejects(db.query('select publish_curated_examples($1,$2,$3,$4)',[s.base_revision,s.candidate_fingerprint,'Curador',{}]),/regression_required/);
+  await assert.rejects(publish({...s,candidate_fingerprint:'outro'}),/stale_catalog/);
+  await db.exec('set role service_role');await publish(s);
+  assert.equal((await snapshot()).baseline.examples.length,1);
+  await assert.rejects(publish(s),/stale_catalog/);
+  await db.query('select retire_curated_example($1,$2,$3)',[id,'Curador','Regressão observada']);
+  assert.equal((await snapshot()).baseline.examples.length,0);
+  assert.equal((await db.query("select count(*)::int n from example_catalog_events where curation_id=$1",[id])).rows[0].n,2);
+});
+test('E: exemplo duplicado ou classificação inválida não é aprovado',async()=>{
+  const first=await queued();await approve(first);const second=await queued();
+  await assert.rejects(approve(second),/duplicate_example_text/);
+  await assert.rejects(db.query('select review_correction_example($1,true,$2,$3,$4,$5)',[second,'Outro relato',{...classification,tipo:null},'Curador','Teste']),/invalid_example/);
+});
+test('E: recuperação usa apenas publicados e preserva identidade e versão',async()=>{
+  await approve(await queued());let s=await snapshot();
+  const client={rpc:()=>({abortSignal:async()=>({data:s.baseline,error:null})})};
+  assert.equal((await loadCuratedExamples(client)).examples.length,0);await publish(s);s=await snapshot();
+  const catalog=await loadCuratedExamples(client);const context=selectContext([{role:'user',text:'Portal falhou ao salvar'}],{entities:[],aliases:[],complete:true},catalog);
+  assert.equal(context.examples.length,1);assert.equal(context.examples_version,s.baseline.version);assert.equal(context.examples[0].id,s.baseline.examples[0].id);
+  await assert.rejects(loadCuratedExamples({rpc:()=>({abortSignal:async()=>({error:{message:'offline'}})})}),/knowledge_unavailable/);
+});
+async function regression(s){
+  const run={dataset_sha256:'same-dataset',contract_sha256:await jsonHash(classificationSchema),taxonomy_sha256:await jsonHash(taxonomy),dictionary_sha256:'same-dictionary',split:'test',model:'fixture',prompt_version:PROMPT_VERSION,contract_version:'classification.1',taxonomy_version:'operational-taxonomy.1'};
+  const metrics={total_cases:1,human_reviewed_cases:1,missing:0,contract:{valid:1,total:1},fields:Object.fromEntries(Object.keys(classification).map(f=>[f,{correct:1,total:1}])),premature_reviews:0,unnecessary_questions:0,details:[{case_id:'fixture',valid:true,mismatched_fields:[],readiness_correct:true,single_issue_correct:true}]};
+  return {baseline:{...structuredClone(metrics),run:{...run,examples_sha256:await jsonHash(s.baseline)}},candidate:{...structuredClone(metrics),run:{...run,examples_sha256:await jsonHash(s.candidate)}},human_review:{reviewed_by:'Curador teste',reviewed_at:'2026-10-09',no_fabrications:true,no_semantic_regressions:true,reference:'Somente fixture automatizada'}};
+}
+test('E: gate aceita comparação compatível e bloqueia regressão, ausência de revisão e catálogo alterado',async()=>{
+  await approve(await queued());const s=await snapshot(),report=await regression(s);
+  assert.equal((await assessRegression(report,s)).status,'passed');
+  for(const mutate of [r=>r.candidate.details[0].mismatched_fields.push('sistema'),r=>r.candidate.details[0].readiness_correct=false,r=>r.candidate.run.model='different',r=>r.candidate.human_reviewed_cases=0,r=>r.human_review.no_fabrications=null,r=>r.candidate.run.examples_sha256='stale']){
+    const copy=structuredClone(report);mutate(copy);await assert.rejects(assessRegression(copy,s),/invalid_regression/);
+  }
+});
+test('E: endpoint recusa decisão incompleta e passa relatório validado para publicação',async()=>{
+  await approve(await queued());const s=await snapshot();let published=0;
+  const handler=createCurationHandler({snapshot:async()=>s,publish:async p=>{published++;assert.equal(p.p_regression.status,'passed');return 1;}});
+  const req=p=>new Request('http://local',{method:'POST',body:JSON.stringify(p)});
+  assert.equal((await handler(req({operation:'publish',actor:'Pessoa',report:{}}))).status,400);assert.equal(published,0);
+  assert.equal((await handler(req({operation:'publish',actor:'Pessoa',report:await regression(s)}))).status,200);assert.equal(published,1);
+});
+test('E: tabelas e RPCs são exclusivas do servidor',async()=>{
+  const p=(await db.query("select has_table_privilege('anon','correction_curations','SELECT') a, has_function_privilege('anon','curated_example_snapshot()','EXECUTE') b, has_function_privilege('service_role','curated_example_snapshot()','EXECUTE') c")).rows[0];
+  assert.deepEqual(p,{a:false,b:false,c:true});
+});
+test('E: tela exige curador e justificativa, não executa HTML do relato e bloqueia duplicação',async()=>{
+  const {document,window}=parseHTML('<html><body></body></html>');let calls=0;
+  const card=curationCard(document,{id:'fixture',status:'pending',perception_reviews:{perceptions:{original_text:'<script>bad()</script>'},final_classification:classification,changes:{sistema:{before:null,after:'Portal'}}}},async(op,p)=>{calls++;assert.equal(op,'review');assert.equal(p.actor,'Pessoa');});document.body.append(card);
+  assert.equal(card.querySelector('script'),null);const approve=card.querySelector('button');approve.click();assert.equal(calls,0);
+  card.querySelector('[name=actor]').value='Pessoa';card.querySelector('[name=note]').value='Campos revisados';approve.click();approve.click();await new Promise(r=>setImmediate(r));assert.equal(calls,1);assert.equal(card.querySelector('button'),null);
 });
