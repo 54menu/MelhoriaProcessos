@@ -45,3 +45,5 @@ Migração e duas funções publicadas no Supabase em 09/10/2026. Testes HTTP: l
 Teste transacional remoto com `service_role`: confirmação gera proposta; aprovação inclui no candidato, mas não no catálogo ativo; retirada funciona. A transação foi revertida ao final, preservando cinco percepções, zero propostas e catálogo `curated.0`.
 
 O verificador de segurança retornou apenas 17 avisos informativos de RLS sem policies, coerentes com acesso às tabelas exclusivamente pelo servidor; nenhum WARN/ERROR. [Descrição do aviso](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+
+Verificação integrada após republicação: `analyze-perception` respondeu 200, com contrato válido e catálogo `curated.0` completo. Uma tentativa anterior retornou `knowledge_unavailable`; a causa não foi confirmada. O carregador registra somente o código do erro de catálogo para facilitar diagnóstico, sem conteúdo de relatos ou credenciais. A tela publicada foi inspecionada no navegador e carregou a fila vazia e os controles de avaliação. Quality gate e publicação do GitHub Pages concluíram com sucesso.

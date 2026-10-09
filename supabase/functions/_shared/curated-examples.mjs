@@ -8,7 +8,10 @@ export async function jsonHash(value) {
 }
 export async function loadCuratedExamples(client,signal) {
   const {data,error}=await client.rpc('curated_example_catalog',{p_include_approved:false}).abortSignal(signal);
-  if(error || !data || typeof data.version!=='string' || !Array.isArray(data.examples) || data.examples.length>500) throw new Error('knowledge_unavailable');
+  if(error || !data || typeof data.version!=='string' || !Array.isArray(data.examples) || data.examples.length>500) {
+    console.error('curated_catalog_unavailable',error?.code??'invalid_catalog_shape');
+    throw new Error('knowledge_unavailable');
+  }
   if(approvedExamples(data).length!==data.examples.length) throw new Error('knowledge_unavailable');
   return data;
 }
