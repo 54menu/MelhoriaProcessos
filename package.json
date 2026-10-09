@@ -6,9 +6,17 @@
     "dev": "node scripts/serve.mjs",
     "lint": "node --check js/api.js && node --check js/app.js && node --check js/admin.js && node --check js/analytics.js && node --check js/semantic.js && node --check js/evolution.js && node --check scripts/serve.mjs && node scripts/check-edge-functions.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "npm run lint && npm test"
+    "check": "node scripts/sync-classification-assets.mjs --check && npm run lint && npm test",
+    "assets:classification": "node scripts/sync-classification-assets.mjs",
+    "eval:classification": "node scripts/evaluate-classification.mjs",
+    "eval:models": "node scripts/compare-models.mjs",
+    "schema:classification": "node scripts/export-classification-schema.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "linkedom": "0.18.13"
   }
 }

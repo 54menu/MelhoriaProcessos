@@ -37,6 +37,14 @@ button:disabled { cursor: wait; opacity: .65; }
 .interpretation-facts dd { margin: 0; font-weight: 650; }
 .chat-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .conversation-editor { display: grid; gap: 12px; margin-top: 18px; }
+.chat-review h2 { margin: 0; font-size: 1.2rem; }
+.chat-review { width: 100%; overflow-wrap: anywhere; }
+.review-evidence { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid #dfe7f2; font-size: .85rem; }
+.review-badge { padding: 4px 8px; border-radius: 6px; background: #e8eef7; color: #334155; }
+.review-evidence p, .review-evidence details { flex-basis: 100%; }
+.review-evidence summary { cursor: pointer; padding: 6px 0; }
+.review-evidence blockquote { margin: 8px 0; padding-left: 10px; border-left: 3px solid #94a3b8; white-space: pre-wrap; }
+.conversation-editor :disabled { color: #475569; opacity: 1; }
 .conversation-editor p { margin: 0; color: #536276; font-size: .92rem; }
 .conversation-editor label { display: grid; gap: 6px; margin: 0; }
 .conversation-editor input, .conversation-editor select { width: 100%; padding: 10px; border: 1px solid #b8c7db; border-radius: 8px; color: inherit; background: #fff; font: inherit; }

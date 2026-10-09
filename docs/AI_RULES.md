@@ -1,5 +1,7 @@
 # Regras de interpretação — MVP 1
 
+> Registro histórico do MVP 1. Para os fundamentos preparados na entrega A, consultar [DELIVERY_A.md](DELIVERY_A.md) e [CLASSIFICATION_CONTRACT_V1.md](CLASSIFICATION_CONTRACT_V1.md). O contrato em uso continua descrito em AI_CONTRACT.md.
+
 1. Uma resposta representa apenas uma percepção principal. Havendo dois problemas, `single_issue` é `false` e a IA pergunta qual deve ser tratado primeiro.
 2. A IA não completa lacunas como fato. Usa `null` e pede esclarecimento.
 3. O texto original é a fonte primária; a interpretação não o substitui.

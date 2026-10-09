@@ -1,5 +1,20 @@
 # Inteligência Operacional — POC evolutiva (2, 3, 4, 5)
 
+## Entrega B — classificação contextualizada
+
+O código do analista agora consulta o dicionário, usa `classification.1`, resolve nomes/aliases homologados no servidor e mantém a confirmação humana. Instruções, testes e limites estão em [docs/DELIVERY_B.md](docs/DELIVERY_B.md). Ainda não publicado remotamente.
+
+## Entrega A — fundamentos da classificação
+
+Taxonomia proposta, contrato versionado e avaliação offline estão em [docs/DELIVERY_A.md](docs/DELIVERY_A.md). O relatório A registra o estado histórico; a integração foi implementada na entrega B.
+
+- Testar: `npm run check`.
+- Consultar o estado da avaliação: `npm run eval:classification`.
+- Revisar os 40 gabaritos propostos: [caderno de revisão](docs/DELIVERY_A_REFERENCE_REVIEW.md).
+- Exportar o novo schema: `npm run schema:classification`.
+
+Os casos iniciais são sintéticos e aguardam revisão de domínio. Testes técnicos aprovados não representam acurácia medida do modelo.
+
 Prova de conceito sem usuários e sem acessos. Fluxo:
 
 ```text
@@ -37,7 +52,8 @@ GitHub Pages → Supabase Edge Functions → Gemini → revisão humana → regi
    `20260930000000_poc_baseline.sql`, `20261002000000_poc_dictionary.sql`,
    `20261002000001_poc_analytics.sql`, `20261002000002_poc_semantic.sql`,
    `20261003000000_poc_knowledge.sql`, `20261008000000_poc_fix_entity_type.sql`,
-   `20261009000000_poc_produto.sql`.
+   `20261009000000_poc_produto.sql`, `20261009000001_delivery_c_review_and_canonical.sql`,
+   `20261009143055_restrict_legacy_rpc_access.sql`.
 3. Cadastre os secrets das Edge Functions:
    ```text
    GEMINI_API_KEY=<chave do Gemini>
@@ -48,7 +64,9 @@ GitHub Pages → Supabase Edge Functions → Gemini → revisão humana → regi
 
 ## Verificação local
 
-Com Node.js 20+: `npm run check`.
+Com Node.js 20+: `npm ci` e `npm run check`. A suíte usa PostgreSQL em memória (PGlite) e DOM local para testar a revisão. Detalhes e limites da entrega C em [docs/DELIVERY_C.md](docs/DELIVERY_C.md).
+
+Comparação de modelos: `npm run eval:models` prepara o plano; a execução real é explícita. Veja [entrega D](docs/DELIVERY_D.md). `CLASSIFICATION_MODEL` e `EVOLUTION_MODEL` permitem configurar modelos por finalidade, preservando `GEMINI_MODEL` como fallback.
 
 ## Segurança (escopo POC)
 

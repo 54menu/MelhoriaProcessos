@@ -1,0 +1,14 @@
+{
+  "dataset_version": "classification-reference.1",
+  "dataset_sha256": "056b07b688ef21ac3d966a191ba07d3f0f8e0987d43987a277fa8a46cf8c9136",
+  "contract_version": "classification.1",
+  "contract_sha256": "55e4aa9ce544ec94e5f4c4e235ad055bf07ed34483b8ed71c2fbdc85a1e64cd7",
+  "taxonomy_version": "operational-taxonomy.1",
+  "taxonomy_sha256": "49fc75dcb2a3302411e0f570db0bde47d62760cdaf27cf9235d65a5de2ed799a",
+  "split": "all",
+  "status": "pending_model_run_and_domain_review",
+  "cases": 40,
+  "human_reviewed_cases": 0,
+  "metrics": null,
+  "message": "Estrutura pronta; nenhuma inferência executada. Não há medida de acurácia do modelo."
+}

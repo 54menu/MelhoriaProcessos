@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PROMPT_VERSION = "poc-evolution.0";
-const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.5-flash-lite";
+const MODEL = Deno.env.get("EVOLUTION_MODEL") || Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

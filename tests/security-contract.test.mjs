@@ -41,17 +41,17 @@ test("modelo Gemini padrão é explicitamente configurável", async () => {
 });
 
 test("analista conduz a conversa antes de liberar validação", async () => {
-  const source = await read("supabase/functions/analyze-perception/index.ts");
+  const source = await read("supabase/functions/_shared/classification-pipeline.mjs") + await read("supabase/functions/_shared/classification-provider.mjs");
   assert.match(source, /ready_for_validation/);
   assert.match(source, /5W2H/);
-  assert.match(source, /createAnalysisSession\(history, rawResponse, dialogue\)/);
+  assert.match(source, /repository.createSession/);
   assert.match(source, /for \(let attempt = 0; attempt < 2/);
 });
 
 test("Edge Functions do POC são abertas e enxutas", async () => {
   const [analyze, record, dictionary, analytics, semantic, evolution] = await Promise.all([
-    read("supabase/functions/analyze-perception/index.ts"),
-    read("supabase/functions/record-perception/index.ts"),
+    read("supabase/functions/_shared/classification-pipeline.mjs"),
+    read("supabase/functions/_shared/review-confirmation.mjs"),
     read("supabase/functions/dictionary-admin/index.ts"),
     read("supabase/functions/operational-analytics/index.ts"),
     read("supabase/functions/semantic-intelligence/index.ts"),
@@ -84,11 +84,12 @@ test("produto é quarto eixo operacional (livre, opcional, com dicionário)", as
     read("supabase/functions/dictionary-admin/index.ts"),
     read("supabase/functions/operational-analytics/index.ts"),
     read("supabase/migrations/20261009000000_poc_produto.sql"),
-    read("js/app.js"),
+    read("js/review.mjs"),
     read("js/analytics.js"),
   ]);
-  assert.match(analyze, /"produto"/);
-  assert.match(record, /"produto"/);
+  const contract = await read("supabase/functions/_shared/classification-contract.mjs");
+  assert.match(contract, /"produto"/);
+  assert.match(record, /persist_reviewed_perception/);
   assert.match(dictionary, /"produto"/);
   assert.match(analytics, /by_product/);
   assert.match(migration, /produto/);

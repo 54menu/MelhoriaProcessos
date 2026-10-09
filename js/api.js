@@ -34,8 +34,8 @@ export function analyzeConversation(messages) {
   return invoke("analyze-perception", { messages });
 }
 
-export function recordPerception(analysisId, classification) {
-  return invoke("record-perception", { analysis_id: analysisId, classification });
+export function recordPerception(analysisId, classification, summary, reviewerLabel) {
+  return invoke("record-perception", { analysis_id: analysisId, classification, summary, reviewer_label: reviewerLabel });
 }
 
 export function dictionaryOperation(operation, payload = {}) {

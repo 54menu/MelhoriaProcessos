@@ -1,5 +1,7 @@
 # Contrato de IA — conversa orientada por 5W2H
 
+> Documento histórico do contrato anterior. A entrega B integra `classification.1` ao código, documentado em [CLASSIFICATION_CONTRACT_V1.md](CLASSIFICATION_CONTRACT_V1.md). A resposta mantém `draft` como alias de `fields` para compatibilidade com a tela. Publicação remota não realizada nesta entrega; ver [DELIVERY_B.md](DELIVERY_B.md).
+
 Versão: `conversation-5w2h.0`.
 
 A IA recebe o histórico curto da conversa e devolve apenas JSON validado. Cada chamada produz uma resposta natural ao usuário e um rascunho interno de classificação. Nenhuma sessão de análise é criada enquanto `ready_for_validation` for `false`.

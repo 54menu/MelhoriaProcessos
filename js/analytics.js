@@ -56,9 +56,9 @@ async function load() {
     barList(systems, data.by_system, (row) => row.name);
     barList(processes, data.by_process, (row) => row.name);
     barList(products, data.by_product ?? [], (row) => row.name);
-    barList(evolution, data.daily_evolution, (row) => `${row.occurrence_date} · ${row.sistema ?? "?"} · ${row.processo ?? "?"} · ${row.produto ?? "?"}`);
+    barList(evolution, data.daily_evolution.slice(-12), (row) => row.occurrence_date);
     coverage.textContent = data.unit_coverage.message;
-    setStatus(`Indicadores de recorrência exata. ${data.note ?? ""}`);
+    setStatus(`${data.note ?? "Indicadores por entidades homologadas."} O painel exibe até 12 itens por gráfico.`);
   } catch (error) {
     setStatus(error.message, true);
   }

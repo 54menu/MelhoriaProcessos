@@ -1,0 +1,9 @@
+{
+  "version": "model-comparison.1",
+  "baseline": "gemini-3.5-flash-lite",
+  "candidate": "gemini-3.8-flash",
+  "split": "dev",
+  "repetitions": 1,
+  "case_timeout_ms": 45000,
+  "max_calls": 80
+}
