@@ -12,6 +12,8 @@ npm run eval:models -- --execute --output-dir .test-artifacts/comparacao
 
 A pasta de saída deve ser nova e seu diretório pai deve existir. `--config` e `--dictionary` permitem selecionar uma configuração e snapshot JSON versionados. A opção `--relay-config` aceita transporte temporário autenticado no Supabase, mantendo a chave Gemini exclusivamente no servidor.
 
+`--dataset` aceita uma base externa no formato `{ "version": "...", "cases": [...] }`; para executá-la, todos os casos selecionados devem ter gabarito aprovado, responsável e data. `--catalog` aceita o catálogo de exemplos aprovado. Preparação do piloto com registros existentes em [PILOT_EXISTING_DATA.md](PILOT_EXISTING_DATA.md).
+
 ## Artefatos e métricas
 
 Cada execução salva plano, checkpoint, respostas, relatório, divergências e formulário de revisão humana. Registra hashes da base, contrato, taxonomia, prompt, implementação, dicionário e exemplos; modelo solicitado e versão retornada; consumo e duração de cada tentativa, inclusive tentativas inválidas. Exportações individuais são compatíveis com o avaliador da entrega A.

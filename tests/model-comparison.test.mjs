@@ -18,6 +18,13 @@ function output(){
   return {contract_version:CONTRACT_VERSION,taxonomy_version:taxonomy.version,fields,single_issue:true,ready_for_validation:true,summary:messages[0].text,assistant_message:'Confira.',clarification_question:null,confirmation_required:true};
 }
 const response=()=>new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(output())}]}}],usageMetadata:{promptTokenCount:100,candidatesTokenCount:50,thoughtsTokenCount:10,totalTokenCount:160},modelVersion:'fixture-version'}));
+
+test('Piloto: base externa exige rótulos estruturados e revisão aprovada exige responsável',()=>{
+  assert.throws(()=>makePlan({datasetVersion:''}),/dataset_version/);
+  assert.throws(()=>makePlan({cases:[{...cases[0],expected:{}}]}),/case_labels/);
+  assert.throws(()=>makePlan({cases:[{...cases[0],review_status:'approved'}]}),/case_review/);
+  assert.throws(()=>makePlan({cases:[cases[0],{...cases[0],id:'copy',split:'test',messages:[{role:'user',text:'O PORTAL fecha ao salvar!'}]}]}),/duplicate_case_text/);
+});
 test('D: comparação usa mesmas entradas sem gabaritos, não cria sessão e mantém metadados',async()=>{
   const bodies=[]; const plan=makePlan();
   const result=await runComparison(plan,{apiKey:'secret-test',fetchImpl:async(url,init)=>{bodies.push(init.body);return response();}});
