@@ -7,13 +7,15 @@ export function createReview({ document, data, onConfirm, onCancel }) {
   const el = (tag, text, className) => { const n = document.createElement(tag); if (text) n.textContent = text; if (className) n.className = className; return n; };
   const card = el("article", "", "chat-review");
   const form = el("form", "", "conversation-editor");
-  card.append(el("h2", "Revise antes de registrar"), el("p", "Confira as inferências e ajuste o resumo e os campos quando necessário. Confirmar o relato não homologa conceitos novos."), form);
+  const simple = data.review_policy?.action === 'simple_confirmation';
+  card.append(el("h2", simple ? "Confira e confirme" : "Revise antes de registrar"), el("p", simple ? "Confira o resumo e os campos. Você pode ajustar qualquer valor antes de confirmar." : "Confira os pontos destacados e ajuste o resumo e os campos quando necessário. Confirmar o relato não homologa conceitos novos."), form);
+  if (data.review_policy?.reasons?.includes('simplification_suspended')) form.append(el('p', 'A confirmação simplificada está suspensa. Faça a revisão completa.'));
   const summary = el("textarea"); summary.name = "summary"; summary.value = data.summary || ""; summary.required = true; summary.maxLength = 1200; summary.rows = 3;
   const summaryLabel = el("label", "Resumo revisado"); summaryLabel.append(summary); form.append(summaryLabel);
   const controls = {};
   for (const [name, label] of Object.entries(labels)) {
     const field = (data.fields || data.draft)[name];
-    const wrapper = el("label", label);
+    const wrapper = el("label", label, data.review_policy?.attention_fields?.includes(name) ? 'review-attention' : '');
     const choices = name === "tipo" ? ["reclamacao", "sugestao", "duvida", "elogio", "outro"] : name === "categoria_problema" ? ["erro", "lentidao", "acesso", "usabilidade", "integracao", "processo", "informacao", "outro"] : null;
     const control = el(choices ? "select" : "input"); control.name = name;
     if (choices) {
@@ -29,7 +31,10 @@ export function createReview({ document, data, onConfirm, onCancel }) {
       for (const source of field.sources) details.append(el("blockquote", source.quote));
       context.append(details);
     }
-    form.append(context);
+    if (simple) {
+      const disclosure = el('details'); disclosure.className = 'review-support';
+      disclosure.append(el('summary', `Ver evidências de ${label.toLowerCase()}`), context); form.append(disclosure);
+    } else form.append(context);
   }
   form.append(el("p", "Os rótulos e trechos acima descrevem a proposta original da IA; seus ajustes serão registrados separadamente.", "muted"));
   const reviewer = el("input"); reviewer.name = "reviewer_label"; reviewer.required = true; reviewer.maxLength = 120; reviewer.autocomplete = "name";

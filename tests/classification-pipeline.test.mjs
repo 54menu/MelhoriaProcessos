@@ -5,6 +5,7 @@ import { selectContext, resolveEntities, loadDictionary, semanticCandidates, app
 import { invokeGemini, providerBody, geminiSchema, embedQuery, timed } from "../supabase/functions/_shared/classification-provider.mjs";
 import { taxonomy, FIELDS, CONTRACT_VERSION, validateClassification } from "../lib/classification-contract.mjs";
 import { exampleCatalog } from "../supabase/functions/_shared/examples.generated.mjs";
+import { decideReview, DEFAULT_POLICY, analysisEvent, loadReviewPolicy } from '../supabase/functions/_shared/selective-review.mjs';
 
 const messages = [{ role: "user", text: "O sistema de garantias fecha ao salvar." }];
 const entities = [
@@ -34,6 +35,53 @@ function setup(overrides = {}) {
   return { rows, dependencies, handler: createHandler(() => dependencies) };
 }
 const request = (body = { messages }) => new Request("http://localhost/analyze", { method: "POST", body: JSON.stringify(body) });
+
+test('F: alias inequívoco permite confirmação simples, independentemente da confiança, sem autorregistro',async()=>{
+  const {dependencies,rows}=setup();const result=await classify(messages,dependencies);
+  assert.equal(result.review_policy.action,'simple_confirmation');
+  assert.equal(result.review_policy.automatic_recording_allowed,false);
+  assert.equal(result.review_policy.human_confirmation_required,true);
+  assert.deepEqual(rows[0].raw_response.review_policy,result.review_policy);
+  const changed=structuredClone(result);for(const f of Object.values(changed.fields)) if(f.value)f.confidence=0.01;
+  assert.deepEqual(decideReview(changed,changed.knowledge),result.review_policy);
+});
+
+test('F: novidade, inferência, conhecimento incompleto e suspensão exigem revisão detalhada',async()=>{
+  const result=await classify(messages,setup().dependencies);
+  for(const mutation of [r=>{r.fields.sistema.resolution='new';r.fields.sistema.entity_id=null;},r=>{r.fields.tipo.evidence='inferred';},r=>{r.knowledge.complete=false;}]){
+    const copy=structuredClone(result);mutation(copy);assert.equal(decideReview(copy,copy.knowledge).action,'detailed_review');
+  }
+  const suspended=decideReview(result,result.knowledge,{...DEFAULT_POLICY,revision:2,simplified_review_enabled:false});
+  assert.equal(suspended.action,'detailed_review');assert.equal(suspended.simple_candidate,true);assert.ok(suspended.reasons.includes('simplification_suspended'));
+  result.ready_for_validation=false;result.single_issue=false;
+  assert.equal(decideReview(result,result.knowledge).action,'clarify');
+});
+
+test('F: política remota inválida falha fechada e avaliação offline não grava telemetria',async()=>{
+  for(const value of [null,{...DEFAULT_POLICY,version:'unknown'},{...DEFAULT_POLICY,revision:0},{...DEFAULT_POLICY,simplified_review_enabled:'true'}]){
+    await assert.rejects(loadReviewPolicy({rpc:()=>({abortSignal:async()=>({data:value})})}),/review_policy_unavailable/);
+  }
+  const s=setup();s.dependencies.repository.loadReviewPolicy=async()=>{throw new Error('review_policy_unavailable');};
+  assert.equal((await (await s.handler(request())).json()).error.code,'review_policy_unavailable');assert.equal(s.rows.length,0);
+  const e=setup();e.dependencies.repository.recordAnalysisEvent=async()=>{throw new Error('must_not_call');};
+  const result=await classify(messages,{...e.dependencies,persistSession:false});assert.equal(result.analysis_id,null);assert.equal(e.rows.length,0);
+});
+
+test('F: HTTP acompanha sucesso e falha sem copiar conteúdo ou erro bruto',async()=>{
+  const s=setup();const events=[];s.dependencies.repository.recordAnalysisEvent=async e=>events.push(e);
+  assert.equal((await s.handler(request())).status,200);assert.equal(events.length,1);assert.equal(events[0].analysis_session_id,'analysis-id');
+  assert.equal(events[0].action,'simple_confirmation');assert.equal(events[0].user_turns,1);assert.equal(JSON.stringify(events).includes(messages[0].text),false);
+  s.dependencies.provider=async()=>{throw new Error('secret-provider-body');};
+  assert.equal((await s.handler(request())).status,502);assert.equal(events[1].status,'failed');assert.equal(events[1].error_code,'upstream_failure');
+  assert.equal(JSON.stringify(events).includes('secret-provider-body'),false);
+  const event=analysisEvent({error:new Error('request_timeout'),model:'fixture',messages,elapsedMs:10});assert.equal(event.error_code,'request_timeout');
+});
+
+test('F: falha no acompanhamento não devolve proposta como sucesso',async()=>{
+  const s=setup();s.dependencies.repository.recordAnalysisEvent=async()=>{throw new Error('analysis_monitoring_unavailable');};
+  const response=await s.handler(request());assert.equal(response.status,502);assert.equal((await response.json()).error.code,'analysis_monitoring_unavailable');
+  assert.equal(s.rows.length,1,'Sessão órfã expira e nunca é confirmada automaticamente');
+});
 
 test('E: pipeline consulta catálogo publicado e retirada afeta a próxima análise',async()=>{
   const s=setup();let active={version:'curated.1',examples:[{id:'curated-fixture',status:'approved',text:messages[0].text,reviewed_by:'Fixture',reviewed_at:'2026-10-09',taxonomy_version:taxonomy.version,classification:Object.fromEntries(FIELDS.map(f=>[f,output().fields[f].value]))}]};

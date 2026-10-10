@@ -10,6 +10,8 @@ import { selectContext } from '../supabase/functions/_shared/knowledge-context.m
 import { curationCard } from '../js/curation-card.mjs';
 import { classificationSchema,taxonomy } from '../lib/classification-contract.mjs';
 import { PROMPT_VERSION } from '../supabase/functions/_shared/classification-provider.mjs';
+import { createMonitoringHandler } from '../supabase/functions/_shared/classification-monitoring.mjs';
+import { renderMonitoring } from '../js/monitoring-report.mjs';
 
 const classification = { tipo: "reclamacao", processo: null, subprocesso: null, sistema: "Portal", produto: null, categoria_problema: "erro" };
 const fields = Object.fromEntries(Object.entries(classification).map(([k,value]) => [k, { value, evidence: value ? "inferred" : "none", resolution: value ? "unresolved" : "absent", sources: value ? [{ message_index: 0, quote: "Portal falhou" }] : [] }]));
@@ -38,6 +40,74 @@ async function alias(id, name) {
   await db.query("insert into entity_aliases(entity_id,entity_type,alias,normalized_alias) values($1,'sistema',$2,normalize_entity_name($2))", [id,name]);
 }
 async function analytics() { return (await db.query('select canonical_operational_analytics() as data')).rows[0].data; }
+
+test('F: política administrativa é versionada, reversível e não concede execução pública',async()=>{
+  await db.exec('set role service_role');
+  const initial=(await db.query('select current_review_policy() as p')).rows[0].p;
+  const suspended=(await db.query("select set_review_simplification(false,'Teste','Investigar ajustes') as p")).rows[0].p;
+  assert.equal(suspended.simplified_review_enabled,false);assert.ok(suspended.revision>initial.revision);
+  const resumed=(await db.query("select set_review_simplification(true,'Teste','Revisão concluída') as p")).rows[0].p;
+  assert.equal(resumed.simplified_review_enabled,true);assert.ok(resumed.revision>suspended.revision);
+  for(const role of ['anon','authenticated']){
+    await db.exec(`reset role;set role ${role}`);
+    await assert.rejects(db.query('select current_review_policy()'),/permission denied/);
+    await assert.rejects(db.query("select set_review_simplification(true,'X','X')"),/permission denied/);
+    await assert.rejects(db.query('select * from classification_analysis_events'),/permission denied/);
+    await assert.rejects(db.query('select classification_monitoring(30)'),/permission denied/);
+  }
+});
+
+async function event(id,action='simple_confirmation',status='succeeded'){
+  await db.query(`insert into classification_analysis_events(analysis_session_id,model,prompt_version,status,error_code,action,policy_revision,policy_version,simple_candidate,category,examples_version,user_turns,elapsed_ms)
+    values($1,'fixture','prompt.test',$3,case when $3='failed' then 'request_timeout' else null end,$2,1,'selective-review.1',coalesce($2='simple_confirmation',false),'erro','curated.0',2,100)`,[id,action,status]);
+}
+async function monitoring(){return (await db.query('select classification_monitoring(30) as report')).rows[0].report;}
+
+test('F: monitor separa tentativas, falhas e correções com denominadores e sem texto dos relatos',async()=>{
+  const clean=await session(),corrected=await session();
+  await event(clean);await event(corrected,'detailed_review');await event(null,'clarify');await event(null,null,'failed');
+  await persist(clean,classification,proposal.interpretation);await persist(clean,classification,proposal.interpretation);
+  await persist(corrected,{...classification,categoria_problema:'lentidao'},proposal.interpretation);
+  await db.exec('set role service_role');const report=await monitoring();
+  assert.equal(report.totals.attempts,4);assert.equal(report.totals.failures,1);assert.equal(report.totals.confirmed,2);assert.equal(report.totals.corrected,1);
+  assert.equal(report.totals.clarification_requests,1);assert.equal(report.totals.average_turns_confirmed,2);
+  assert.deepEqual(report.field_corrections,[{field:'categoria_problema',corrections:1}]);assert.equal(report.cost,null);
+  assert.equal(report.automatic_recording_allowed,false);assert.equal(JSON.stringify(report).includes('Portal falhou'),false);
+  assert.equal(report.alerts.correction_rate_exceeded,false);
+  await assert.rejects(db.query('select classification_monitoring(10000)'),/invalid_monitoring_window/);
+});
+
+test('F: monitor vazio não inventa taxas e alertas respeitam amostra mínima',async()=>{
+  const empty=await monitoring();assert.equal(empty.totals.attempts,0);assert.equal(empty.totals.average_turns_confirmed,null);
+  for(let i=0;i<19;i++)await event(null,null,'failed');assert.equal((await monitoring()).alerts.failure_rate_exceeded,false);
+  await event(null,null,'failed');assert.equal((await monitoring()).alerts.failure_rate_exceeded,true);
+  await db.exec("update classification_analysis_events set created_at=now()-interval '91 days'");
+  assert.equal((await monitoring()).totals.attempts,0);
+});
+
+test('F: endpoint é somente leitura, valida janela e trata indisponibilidade',async()=>{
+  const handler=createMonitoringHandler(async days=>({days}));const request=body=>new Request('http://local',{method:'POST',body:JSON.stringify(body)});
+  assert.equal((await handler(request({days:7}))).status,200);
+  assert.equal((await handler(request({days:7,operation:'enable'}))).status,400);
+  assert.equal((await handler(request({days:0}))).status,400);
+  assert.equal((await handler(new Request('http://local'))).status,405);
+  assert.equal((await createMonitoringHandler(async()=>{throw new Error('private');})(request({}))).status,503);
+});
+
+test('F: revisão simplificada mantém todos os campos editáveis e confirmação explícita',async()=>{
+  const {document,window}=parseHTML('<html><body></body></html>');let calls=0;
+  const data={summary:'Resumo',fields,review_policy:{action:'simple_confirmation',reasons:[],attention_fields:[]}};
+  const card=createReview({document,data,onConfirm:async()=>{calls++;},onCancel(){}});document.body.append(card);
+  assert.match(card.textContent,/Confira e confirme/);assert.equal(card.querySelectorAll('.review-support').length,6);
+  assert.equal(card.querySelectorAll('input,select,textarea').length,8);assert.equal(calls,0);
+  card.querySelector('[name=reviewer_label]').value='Pessoa';card.querySelector('form').dispatchEvent(new window.Event('submit',{cancelable:true}));await new Promise(r=>setImmediate(r));assert.equal(calls,1);
+});
+
+test('F: painel mostra denominadores vazios e escapa campos recebidos',async()=>{
+  const {document}=parseHTML('<html><body><div id="report"></div></body></html>');const target=document.querySelector('#report');
+  const report=await monitoring();report.groups=[{model:'<img src=x>',attempts:1,failures:1,confirmed:0,corrected:0}];
+  renderMonitoring(document,target,report);assert.match(target.textContent,/Sem amostra/);assert.match(target.textContent,/Registro automático desativado/);assert.equal(target.querySelector('img'),null);
+});
 
 test('C: grava revisão, mantém original e proposta, resolve alias e preserva versões', async () => {
   const canonical = await entity('Portal Corporativo'); await alias(canonical, 'Portal');

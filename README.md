@@ -2,7 +2,7 @@
 
 ## Entrega B — classificação contextualizada
 
-O código do analista agora consulta o dicionário, usa `classification.1`, resolve nomes/aliases homologados no servidor e mantém a confirmação humana. Instruções, testes e limites estão em [docs/DELIVERY_B.md](docs/DELIVERY_B.md). Ainda não publicado remotamente.
+O código do analista consulta o dicionário, usa `classification.1`, resolve nomes/aliases homologados no servidor e mantém a confirmação humana. Instruções, testes e limites estão em [docs/DELIVERY_B.md](docs/DELIVERY_B.md). Publicação A–D registrada em [docs/DEPLOYMENT_ABCD.md](docs/DEPLOYMENT_ABCD.md).
 
 ## Entrega A — fundamentos da classificação
 
@@ -71,6 +71,8 @@ Comparação de modelos: `npm run eval:models` prepara o plano; a execução rea
 Curadoria de correções: [curation.html](curation.html), disponível também pela página Evolução. A [entrega E](docs/DELIVERY_E.md) separa aprovação, avaliação de regressão e publicação de exemplos. Aplicar `20261009200350_delivery_e_curated_examples.sql` e publicar `knowledge-curation` antes do novo `analyze-perception`. `npm run eval:knowledge` executa a comparação entre catálogos conforme os argumentos documentados.
 
 ## Segurança (escopo POC)
+
+A [entrega F](docs/DELIVERY_F.md) acrescenta encaminhamento por política, suspensão administrativa da confirmação simplificada e [acompanhamento da classificação](monitoring.html). Autorregistro permanece bloqueado. Aplicar `20261009234134_delivery_f_selective_review_monitoring.sql` antes de publicar `classification-monitoring` e `analyze-perception`.
 
 - Modelo aberto, sem autenticação: adequado apenas para demonstração.
 - `GEMINI_API_KEY` e `SUPABASE_SERVICE_ROLE_KEY` ficam só nos secrets do Supabase.

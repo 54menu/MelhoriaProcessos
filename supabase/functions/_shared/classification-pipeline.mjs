@@ -1,6 +1,7 @@
 import { taxonomy, CONTRACT_VERSION, validateClassification } from "./classification-contract.mjs";
 import { selectContext, resolveEntities } from "./knowledge-context.mjs";
 import { timed, PROMPT_VERSION, validateInterpretation } from "./classification-provider.mjs";
+import { DEFAULT_POLICY, decideReview, analysisEvent } from './selective-review.mjs';
 
 export function parseConversation(value) {
   if (!Array.isArray(value) || !value.length || value.length > 12) return null;
@@ -18,6 +19,7 @@ async function fingerprint(value) {
 }
 
 export async function classify(messages, { repository, provider, catalog, model, semanticSearch, signal, persistSession = true }) {
+  const policy = repository.loadReviewPolicy ? await timed(s => repository.loadReviewPolicy(s), 5000, signal) : DEFAULT_POLICY;
   const snapshot = await timed(s => repository.loadDictionary(s), 7000, signal);
   if (repository.loadCatalog) catalog = await timed(s => repository.loadCatalog(s), 7000, signal);
   const warnings = snapshot.complete ? [] : ["dictionary_snapshot_limited"];
@@ -43,16 +45,17 @@ export async function classify(messages, { repository, provider, catalog, model,
   };
   // Keep current persistence and browser consumers compatible while carrying full fields.
   const draft = output.fields;
+  const review_policy = decideReview(output, knowledge, policy);
   let analysisId = null;
   if (output.ready_for_validation && persistSession) {
     analysisId = await timed(s => repository.createSession({
       original_text: messages.filter(m => m.role === "user").map(m => m.text).join("\n"),
       prompt_version: PROMPT_VERSION, model,
-      raw_response: { provider_response: inference.rawResponse, classification: output, conversation: messages, knowledge, context, attempts: inference.attempts },
-      proposed_interpretation: { interpretation: output.summary, fields: draft, contract_version: CONTRACT_VERSION, taxonomy_version: taxonomy.version, knowledge },
+      raw_response: { provider_response: inference.rawResponse, classification: output, conversation: messages, knowledge, context, attempts: inference.attempts, review_policy },
+      proposed_interpretation: { interpretation: output.summary, fields: draft, contract_version: CONTRACT_VERSION, taxonomy_version: taxonomy.version, knowledge, review_policy },
     }, s), 7000, signal);
   }
-  return { ...output, draft, analysis_id: analysisId, model, prompt_version: PROMPT_VERSION, knowledge };
+  return { ...output, draft, analysis_id: analysisId, model, prompt_version: PROMPT_VERSION, knowledge, review_policy };
 }
 
 export function createHandler(dependencies) {
@@ -64,13 +67,26 @@ export function createHandler(dependencies) {
     const payload = await request.json().catch(() => null);
     const messages = parseConversation(payload?.messages);
     if (!messages) return reply(400, { error: { code: "invalid_conversation", message: "Envie até 12 mensagens alternadas e 2.000 caracteres do usuário, incluindo separadores." } });
+    let deps;
+    const started = performance.now();
+    let result;
     try {
-      const result = await timed(signal => classify(messages, { ...dependencies(), signal }), 45000, request.signal);
+      deps = dependencies();
+      result = await timed(signal => classify(messages, { ...deps, signal }), 45000, request.signal);
+      if (deps.repository.recordAnalysisEvent) await timed(signal => deps.repository.recordAnalysisEvent(analysisEvent({ result, model: deps.model, messages, elapsedMs: performance.now() - started }), signal), 3000);
       return reply(200, result);
     } catch (error) {
+      // A telemetry failure must not turn an unobserved success into a release.
+      // Failures have no raw text, provider response, or credential in this table.
+      if (!result && deps?.repository.recordAnalysisEvent) {
+        try { await timed(signal => deps.repository.recordAnalysisEvent(analysisEvent({ error, model: deps.model, messages, elapsedMs: performance.now() - started }), signal), 3000); }
+        catch { console.error('analysis_monitoring_unavailable'); }
+      }
       const code = error instanceof Error ? error.message : "upstream_failure";
       const messagesByCode = {
-        knowledge_unavailable: "Não foi possível consultar o dicionário. Tente novamente.",
+        knowledge_unavailable: "Não foi possível consultar as referências de classificação. Tente novamente.",
+        review_policy_unavailable: "Não foi possível consultar as regras de revisão. Tente novamente.",
+        analysis_monitoring_unavailable: "Não foi possível registrar o acompanhamento da análise. Tente novamente.",
         invalid_provider_response: "A IA não retornou uma classificação sustentada pelo relato. Tente novamente.",
         request_timeout: "A análise excedeu o tempo disponível. Tente novamente.",
       };

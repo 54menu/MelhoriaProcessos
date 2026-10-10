@@ -1,9 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { createHandler } from "../_shared/classification-pipeline.mjs";
 import { loadDictionary, semanticCandidates } from "../_shared/knowledge-context.mjs";
 import { invokeGemini, embedQuery } from "../_shared/classification-provider.mjs";
 import { exampleCatalog } from "../_shared/examples.generated.mjs";
 import { loadCuratedExamples } from "../_shared/curated-examples.mjs";
+import { loadReviewPolicy } from "../_shared/selective-review.mjs";
 
 const MODEL = Deno.env.get("CLASSIFICATION_MODEL") || Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const EMBEDDING_MODEL = Deno.env.get("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
@@ -19,6 +20,11 @@ Deno.serve(createHandler(() => {
     model: MODEL,
     catalog: exampleCatalog,
     repository: {
+      loadReviewPolicy: (signal: AbortSignal) => loadReviewPolicy(client, signal),
+      recordAnalysisEvent: async (row: Record<string, unknown>, signal: AbortSignal) => {
+        const { error } = await client.from('classification_analysis_events').insert(row).abortSignal(signal);
+        if (error) throw new Error('analysis_monitoring_unavailable');
+      },
       loadDictionary: (signal: AbortSignal) => loadDictionary(client, signal),
       loadCatalog: (signal: AbortSignal) => loadCuratedExamples(client, signal),
       createSession: async (row: Record<string, unknown>, signal: AbortSignal) => {

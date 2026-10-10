@@ -41,6 +41,8 @@ button:disabled { cursor: wait; opacity: .65; }
 .chat-review { width: 100%; overflow-wrap: anywhere; }
 .review-evidence { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid #dfe7f2; font-size: .85rem; }
 .review-badge { padding: 4px 8px; border-radius: 6px; background: #e8eef7; color: #334155; }
+.review-attention { padding: 10px; border-left: 4px solid #b45309; background: #fffbeb; }
+.review-support summary { cursor: pointer; color: #475569; padding: 4px 0; }
 .review-evidence p, .review-evidence details { flex-basis: 100%; }
 .review-evidence summary { cursor: pointer; padding: 6px 0; }
 .review-evidence blockquote { margin: 8px 0; padding-left: 10px; border-left: 3px solid #94a3b8; white-space: pre-wrap; }

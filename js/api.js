@@ -46,6 +46,10 @@ export function fetchAnalytics() {
   return invoke("operational-analytics", {});
 }
 
+export function fetchClassificationMonitoring(days = 30) {
+  return invoke('classification-monitoring', { days });
+}
+
 export function semanticOperation(operation, payload = {}) {
   return invoke("semantic-intelligence", { operation, ...payload });
 }
