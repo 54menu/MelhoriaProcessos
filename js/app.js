@@ -1,5 +1,5 @@
 import { analyzeConversation, recordPerception } from "./api.js";
-import { createReview } from "./review.mjs";
+import { createReportConfirmation } from "./report-confirmation.mjs";
 
 const conversation = document.querySelector("#conversation");
 const form = document.querySelector("#perception-form");
@@ -33,13 +33,13 @@ function offerNextStep() {
 }
 function renderInterpretation(data) {
   form.hidden = true;
-  const card = createReview({ document, data,
-    onConfirm: async (values, summary, reviewer) => {
-      await recordPerception(data.analysis_id, values, summary, reviewer);
-      addMessage("assistant", "Pronto. Registrei sua percepção e sua revisão.");
+  const card = createReportConfirmation({ document, data,
+    onConfirm: async () => {
+      await recordPerception(data.analysis_id);
+      addMessage("assistant", "Obrigado. Seu relato foi enviado para a equipe de gestão.");
       history = []; offerNextStep();
     },
-    onCancel: () => { form.hidden = false; setStatus("Acrescente ou esclareça os detalhes para gerar uma nova proposta."); input.focus(); }
+    onCorrect: () => { form.hidden = false; setStatus("Conte o que precisa ser corrigido no entendimento do relato."); input.focus(); }
   });
   conversation.append(card);
   card.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -62,7 +62,7 @@ form.addEventListener("submit", async (event) => {
     const pendingHistory = [...history, { role: "user", text: message }];
     const data = await analyzeConversation(pendingHistory);
     history = pendingHistory;
-    addMessage("assistant", data.assistant_message, data.ready_for_validation ? "validation-message" : "clarification-message");
+    addMessage("assistant", data.ready_for_validation ? "Preparei um resumo do que você contou. Confira se entendi corretamente." : data.assistant_message, data.ready_for_validation ? "validation-message" : "clarification-message");
     history.push({ role: "assistant", text: data.assistant_message });
     if (data.ready_for_validation) { renderInterpretation(data); setStatus("Confira o resumo antes de registrar."); }
     else setStatus("Responda à pergunta do assistente para continuar.");

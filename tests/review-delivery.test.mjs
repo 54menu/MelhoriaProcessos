@@ -12,6 +12,9 @@ import { classificationSchema,taxonomy } from '../lib/classification-contract.mj
 import { PROMPT_VERSION } from '../supabase/functions/_shared/classification-provider.mjs';
 import { createMonitoringHandler } from '../supabase/functions/_shared/classification-monitoring.mjs';
 import { renderMonitoring } from '../js/monitoring-report.mjs';
+import { createReportConfirmation } from '../js/report-confirmation.mjs';
+import { createSubmissionHandler } from '../supabase/functions/_shared/report-submission.mjs';
+import { createManagementHandler } from '../supabase/functions/_shared/management-review.mjs';
 
 const classification = { tipo: "reclamacao", processo: null, subprocesso: null, sistema: "Portal", produto: null, categoria_problema: "erro" };
 const fields = Object.fromEntries(Object.entries(classification).map(([k,value]) => [k, { value, evidence: value ? "inferred" : "none", resolution: value ? "unresolved" : "absent", sources: value ? [{ message_index: 0, quote: "Portal falhou" }] : [] }]));
@@ -40,6 +43,56 @@ async function alias(id, name) {
   await db.query("insert into entity_aliases(entity_id,entity_type,alias,normalized_alias) values($1,'sistema',$2,normalize_entity_name($2))", [id,name]);
 }
 async function analytics() { return (await db.query('select canonical_operational_analytics() as data')).rows[0].data; }
+
+test('Papéis: confirmar relato cria só uma pendência, sem classificação, revisão ou curadoria',async()=>{
+  const id=await session();await db.exec('set role service_role');
+  for(let i=0;i<2;i++)assert.equal((await db.query('select submit_confirmed_report($1) as id',[id])).rows[0].id,id);
+  assert.equal((await db.query('select count(*)::int as n from report_submissions')).rows[0].n,1);
+  for(const table of ['perceptions','classifications','perception_reviews','correction_curations'])assert.equal((await db.query(`select count(*)::int as n from ${table}`)).rows[0].n,0);
+});
+test('Papéis: gestor aprova relato submetido mesmo após prazo da conversa, sem duplicação',async()=>{
+  const id=await session();await db.query('select submit_confirmed_report($1)',[id]);
+  await db.query("update analysis_sessions set expires_at=now()-interval '1 day' where id=$1",[id]);
+  await db.exec('set role service_role');
+  const args=[id,classification,'Resumo do gestor','Gestor teste'];
+  const first=(await db.query('select review_submitted_report($1,$2,$3,$4) as id',args)).rows[0].id;
+  assert.equal((await db.query('select review_submitted_report($1,$2,$3,$4) as id',args)).rows[0].id,first);
+  assert.equal((await db.query('select status from report_submissions')).rows[0].status,'reviewed');
+  assert.equal((await db.query('select reviewer_label from perception_reviews')).rows[0].reviewer_label,'Gestor teste');
+  assert.equal((await db.query('select count(*)::int as n from perceptions')).rows[0].n,1);
+  assert.equal((await db.query('select expires_at<now() as expired from analysis_sessions')).rows[0].expired,true);
+  await assert.rejects(db.query('select review_submitted_report($1,$2,$3,$4)',[id,classification,'Outra revisão','Outro']),/analysis_session_unavailable/);
+});
+test('Papéis: sessão expirada não inicia fila; gestor não pode revisar sessão não submetida',async()=>{
+  const id=await session();await assert.rejects(db.query('select review_submitted_report($1,$2,$3,$4)',[id,classification,'Resumo','Gestor']),/report_not_submitted/);
+  await db.query("update analysis_sessions set expires_at=now()-interval '1 day' where id=$1",[id]);
+  await assert.rejects(db.query('select submit_confirmed_report($1)',[id]),/analysis_session_unavailable/);
+});
+test('Papéis: erro de revisão reverte toda a aprovação e tabelas seguem exclusivas do servidor',async()=>{
+  const id=await session();await db.query('select submit_confirmed_report($1)',[id]);
+  await assert.rejects(db.query('select review_submitted_report($1,$2,$3,$4)',[id,{},'Resumo','Gestor']),/invalid_confirmation/);
+  assert.equal((await db.query('select status from report_submissions')).rows[0].status,'pending');
+  assert.equal((await db.query('select count(*)::int as n from perceptions')).rows[0].n,0);
+  await db.exec('set role anon');await assert.rejects(db.query('select * from report_submissions'),/permission denied/);
+  await assert.rejects(db.query('select submit_confirmed_report($1)',[id]),/permission denied/);
+});
+test('Papéis: endpoint do usuário rejeita classificação e revisão técnica',async()=>{
+  let calls=0;const handler=createSubmissionHandler(async id=>{calls++;return id;});
+  const p={analysis_id:'11111111-1111-1111-1111-111111111111',confirmed:true};
+  const request=p=>new Request('http://local',{method:'POST',body:JSON.stringify(p)});
+  assert.equal((await handler(request({...p,classification,reviewer_label:'Falso gestor'}))).status,400);assert.equal(calls,0);
+  const res=await handler(request(p));assert.equal(res.status,201);assert.equal((await res.json()).status,'pending_management_review');
+  const management=createManagementHandler({list:async()=>[],review:async()=>{calls++;return 'saved';}});
+  assert.equal((await management(request({operation:'review',...p}))).status,400);
+});
+test('Papéis: conversa mostra só resumo e envia confirmação explícita, com correção pela conversa',async()=>{
+  const {document}=parseHTML('<html><body></body></html>');let calls=0,corrected=0;
+  const data={summary:'<img src=x> Resumo',fields};
+  const card=createReportConfirmation({document,data,onConfirm:async()=>{calls++;},onCorrect:()=>{corrected++;}});document.body.append(card);
+  assert.equal(card.querySelectorAll('input,textarea,select,img').length,0);assert.doesNotMatch(card.textContent,/Gestor responsável|Conceito homologado|Inferido pela IA/);
+  const button=card.querySelector('button');button.click();button.click();await new Promise(r=>setImmediate(r));assert.equal(calls,1);
+  const other=createReportConfirmation({document,data,onConfirm:async()=>{},onCorrect:()=>{corrected++;}});document.body.append(other);other.querySelectorAll('button')[1].click();assert.equal(corrected,1);
+});
 
 test('F: política administrativa é versionada, reversível e não concede execução pública',async()=>{
   await db.exec('set role service_role');

@@ -1,5 +1,9 @@
 # Inteligência Operacional — POC evolutiva (2, 3, 4, 5)
 
+## Fluxo atual — usuário e gestão separados
+
+Na conversa, o usuário confirma somente o resumo. O relato vai para a fila de [revisão da gestão](management.html); o gestor revisa os campos e aprova a classificação. Botões de gestão ficam em uma seção própria e ainda não exigem login. [Implementação, publicação e testes](docs/USER_AND_MANAGER_FLOWS.md). As descrições históricas abaixo registram etapas anteriores; esta separação substitui a edição técnica dos campos pelo usuário.
+
 ## Entrega B — classificação contextualizada
 
 O código do analista consulta o dicionário, usa `classification.1`, resolve nomes/aliases homologados no servidor e mantém a confirmação humana. Instruções, testes e limites estão em [docs/DELIVERY_B.md](docs/DELIVERY_B.md). Publicação A–D registrada em [docs/DEPLOYMENT_ABCD.md](docs/DEPLOYMENT_ABCD.md).

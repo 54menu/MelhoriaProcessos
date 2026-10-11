@@ -89,7 +89,9 @@ test("produto é quarto eixo operacional (livre, opcional, com dicionário)", as
   ]);
   const contract = await read("supabase/functions/_shared/classification-contract.mjs");
   assert.match(contract, /"produto"/);
-  assert.match(record, /persist_reviewed_perception/);
+  assert.match(record, /submit_confirmed_report/);
+  assert.doesNotMatch(record, /persist_reviewed_perception/);
+  assert.match(await read('supabase/functions/management-review/index.ts'), /review_submitted_report/);
   assert.match(dictionary, /"produto"/);
   assert.match(analytics, /by_product/);
   assert.match(migration, /produto/);

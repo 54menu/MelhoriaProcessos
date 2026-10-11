@@ -38,10 +38,10 @@ export function createReview({ document, data, onConfirm, onCancel }) {
   }
   form.append(el("p", "Os rótulos e trechos acima descrevem a proposta original da IA; seus ajustes serão registrados separadamente.", "muted"));
   const reviewer = el("input"); reviewer.name = "reviewer_label"; reviewer.required = true; reviewer.maxLength = 120; reviewer.autocomplete = "name";
-  const reviewerLabel = el("label", "Quem revisou este registro?"); reviewerLabel.append(reviewer); form.append(reviewerLabel, el("p", "Identificação declarada por você, sem verificação de login.", "muted"));
+  const reviewerLabel = el("label", "Gestor responsável pela revisão"); reviewerLabel.append(reviewer); form.append(reviewerLabel, el("p", "Identificação declarada pelo gestor, sem verificação de login nesta fase.", "muted"));
   const message = el("p", "", "status"); message.setAttribute("role", "status");
-  const save = el("button", "Confirmar e registrar"); save.type = "submit";
-  const cancel = el("button", "Voltar à conversa", "secondary"); cancel.type = "button";
+  const save = el("button", "Aprovar classificação"); save.type = "submit";
+  const cancel = el("button", "Revisar depois", "secondary"); cancel.type = "button";
   form.append(message, save, cancel);
   let busy = false;
   cancel.addEventListener("click", () => { if (!busy) { card.remove(); onCancel(); } });

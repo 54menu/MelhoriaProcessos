@@ -1,11 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { strict as assert } from "node:assert";
 
-const functions = ["analyze-perception", "record-perception", "dictionary-admin", "operational-analytics", "semantic-intelligence", "knowledge-evolution", "knowledge-curation", "classification-monitoring"];
+const functions = ["analyze-perception", "record-perception", "dictionary-admin", "operational-analytics", "semantic-intelligence", "knowledge-evolution", "knowledge-curation", "classification-monitoring", "management-review"];
 
 for (const name of functions) {
   const entry = await readFile(new URL(`../supabase/functions/${name}/index.ts`, import.meta.url), "utf8");
-  const shared = { "analyze-perception": "classification-pipeline.mjs", "record-perception": "review-confirmation.mjs", "knowledge-curation": "curated-examples.mjs", "classification-monitoring": "classification-monitoring.mjs" }[name];
+  const shared = { "analyze-perception": "classification-pipeline.mjs", "record-perception": "report-submission.mjs", "knowledge-curation": "curated-examples.mjs", "classification-monitoring": "classification-monitoring.mjs", "management-review": "management-review.mjs" }[name];
   const source = shared ? entry + await readFile(new URL(`../supabase/functions/_shared/${shared}`, import.meta.url), "utf8") : entry;
   assert.match(source, /request\.json\(\)\.catch\(\(\)\s*=>\s*null\)/, `${name}: JSON malformado deve ser tratado`);
   assert.match(source, /Access-Control-Allow-Origin["']:\s*["']\*["']/, `${name}: POC usa CORS aberto`);

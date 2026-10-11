@@ -12,10 +12,10 @@ export function renderMonitoring(document, target, data) {
   for(const [label,value] of [
     ['Tentativas de análise',t.attempts],['Falhas / tentativas',rate(t.failures,t.attempts)],
     ['Pedidos de esclarecimento',t.clarification_requests],['Confirmações simplificadas propostas',t.simple_confirmations],
-    ['Revisões detalhadas propostas',t.detailed_reviews],['Percepções confirmadas',t.confirmed],
-    ['Com ajustes / confirmadas',rate(t.corrected,t.confirmed)],['Tempo de análise (95% das tentativas)',duration(t.p95_analysis_ms)],
-    ['Turnos do usuário por percepção confirmada',t.average_turns_confirmed===null?'Sem amostra':Number(t.average_turns_confirmed).toFixed(1)],
-    ['Tempo decorrido até confirmar (inclui espera)',duration(t.average_elapsed_until_confirmation_ms)],
+    ['Revisões detalhadas propostas',t.detailed_reviews],['Classificações revisadas (gestão e histórico)',t.confirmed],
+    ['Com ajustes / revisadas',rate(t.corrected,t.confirmed)],['Tempo de análise (95% das tentativas)',duration(t.p95_analysis_ms)],
+    ['Turnos do usuário por classificação revisada',t.average_turns_confirmed===null?'Sem amostra':Number(t.average_turns_confirmed).toFixed(1)],
+    ['Tempo até revisão técnica (inclui espera na fila)',duration(t.average_elapsed_until_confirmation_ms)],
   ]) {const n=el('div',undefined,'metric');n.append(el('span',label),el('strong',value));metrics.append(n);}
   target.append(metrics);
   if(data.alerts.failure_rate_exceeded) target.append(el('p','Atenção: mais de 10% de falhas em pelo menos 20 tentativas. Investigue a disponibilidade antes de ampliar o uso.','status error'));
