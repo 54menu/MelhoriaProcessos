@@ -13,6 +13,10 @@ textarea:focus { border-color: #2563eb; outline: 3px solid #bfdbfe; }
 button { border: 0; border-radius: 9px; padding: 11px 18px; background: #2563eb; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
 button:hover { background: #1d4ed8; }
 button:disabled { cursor: wait; opacity: .65; }
+.navigation-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 24px; }
+.navigation-buttons a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 18px; border-radius: 9px; background: #2563eb; color: #fff; font-weight: 650; text-decoration: none; }
+.navigation-buttons a:hover { background: #1d4ed8; }
+.navigation-buttons a:focus-visible { outline: 3px solid #1e3a8a; outline-offset: 3px; }
 .response { margin-top: 28px; padding-top: 20px; border-top: 1px solid #e5eaf1; }
 .status { margin: 0; line-height: 1.5; }
 .status.error { color: #b42318; }
