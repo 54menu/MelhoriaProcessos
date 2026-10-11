@@ -29,3 +29,11 @@ Não promover modelo ou catálogo a partir de divergência com o histórico. Pri
 ## Verificação da preparação
 
 83 testes técnicos passaram. Planejamento com os cinco registros importados: cinco casos de desenvolvimento, zero revisados e teto de 20 tentativas para comparação entre dois modelos. Nenhuma chamada é feita pelo planejamento. Execução com essa base pendente foi recusada antes de consultar credenciais ou chamar provedores. A reanálise exploratória pelo endpoint atual também não foi executada: a revisão automática solicitou autorização explícita de envio dos textos ao Supabase/Gemini.
+
+## Reanálise autorizada — 11/10/2026
+
+Após autorização explícita, os cinco textos foram enviados ao endpoint atual, sem confirmação de registros. Resultado inicial preservado: quatro respostas 200 e uma 502 por `invalid_provider_response`; dois encaminhamentos para revisão detalhada, um para confirmação simplificada e um para esclarecimento. Não houve repetição para substituir a falha por um resultado favorável. O banco permaneceu com cinco percepções e zero revisões.
+
+Modelo `gemini-3.5-flash-lite`, prompt `contextual-classification.1`, catálogo `curated.0` e política `selective-review.1`, revisão 1. Nas quatro respostas válidas, a recuperação semântica foi sinalizada como indisponível e não houve exemplos relevantes aprovados. As classificações divergiram do histórico, com campos removidos e mudança de categoria em um caso; isso requer revisão, não demonstra ganho de acurácia. Identificar a causa específica da resposta inválida e revisar omissões permanecem pendentes.
+
+Comparativo detalhado e respostas foram preservados localmente em `.test-artifacts/pilot-2026-10-10/reanalysis-report.md` e `current-responses.json`, fora do Git. Nenhum gabarito foi aprovado em nome de um revisor.
